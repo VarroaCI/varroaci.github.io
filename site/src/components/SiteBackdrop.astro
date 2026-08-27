@@ -1,0 +1,115 @@
+---
+// SiteBackdrop.astro — the brochure pages' background: a tiling honeycomb
+// lattice under an accent wash, matching the treatment on the dashboard's
+// login page (frontend/src/pages/LoginPage.tsx) so the marketing site and the
+// product look like the same thing.
+//
+// The layer is decorative: aria-hidden, pointer-events: none, and it sits
+// behind content via a negative z-index. It is absolutely (not fixed)
+// positioned so it scrolls away — the pattern belongs to the hero, and the
+// reading sections below it stay flat.
+//
+// The comb geometry is the login page's pattern verbatim (72 x 41.5692
+// userSpaceOnUse tile). Stroke is currentColor, so the theme rules at the
+// bottom of this file drive it in both light and dark.
+---
+
+<div class="varroa-backdrop" aria-hidden="true">
+  <div class="varroa-backdrop__glow"></div>
+  <svg class="varroa-backdrop__comb" width="100%" height="100%" aria-hidden="true">
+    <defs>
+      <pattern id="varroa-comb" width="72" height="41.5692" patternUnits="userSpaceOnUse">
+        <g fill="none" stroke="currentColor" stroke-width="1">
+          <path d="M24,0 L12,20.7846 L-12,20.7846 L-24,0 L-12,-20.7846 L12,-20.7846 Z" />
+          <path d="M96,0 L84,20.7846 L60,20.7846 L48,0 L60,-20.7846 L84,-20.7846 Z" />
+          <path d="M24,41.5692 L12,62.3538 L-12,62.3538 L-24,41.5692 L-12,20.7846 L12,20.7846 Z" />
+          <path d="M96,41.5692 L84,62.3538 L60,62.3538 L48,41.5692 L60,20.7846 L84,20.7846 Z" />
+          <path d="M60,20.7846 L48,41.5692 L24,41.5692 L12,20.7846 L24,0 L48,0 Z" />
+        </g>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#varroa-comb)" />
+  </svg>
+  <div class="varroa-backdrop__scrim"></div>
+</div>
+
+<style is:global>
+  /* The backdrop is absolutely positioned against the page. */
+  body.varroa-brochure {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .varroa-backdrop {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: clamp(30rem, 105vh, 60rem);
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* Warm wash behind the lattice, brightest at the top-left where the hero
+     headline sits. */
+  .varroa-backdrop__glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(
+        60rem 40rem at 18% -10%,
+        color-mix(in srgb, var(--varroa-accent) 16%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        45rem 32rem at 88% 0%,
+        color-mix(in srgb, var(--varroa-accent-high) 12%, transparent),
+        transparent 68%
+      );
+  }
+
+  /* Both layers fade out before the page's first content section so the
+     pillar grid and comparison table read against flat background. */
+  .varroa-backdrop__comb,
+  .varroa-backdrop__glow {
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
+  }
+
+  .varroa-backdrop__comb {
+    position: absolute;
+    inset: 0;
+    color: color-mix(in srgb, var(--varroa-accent) 9%, transparent);
+  }
+
+  :root[data-theme="light"] .varroa-backdrop__comb {
+    color: color-mix(in srgb, var(--varroa-accent) 10%, transparent);
+  }
+
+  /* The lattice is decoration, and body copy has to win against it. This pools
+     background color under the text column so the pattern reads as texture at
+     the edges instead of lines running through the paragraphs. */
+  .varroa-backdrop__scrim {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      55rem 34rem at 22% 34%,
+      var(--varroa-bg) 0%,
+      color-mix(in srgb, var(--varroa-bg) 82%, transparent) 42%,
+      transparent 72%
+    );
+  }
+
+  :root[data-theme="light"] .varroa-backdrop__glow {
+    background:
+      radial-gradient(
+        60rem 40rem at 18% -10%,
+        color-mix(in srgb, var(--varroa-accent) 12%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        45rem 32rem at 88% 0%,
+        color-mix(in srgb, var(--varroa-accent-high) 8%, transparent),
+        transparent 68%
+      );
+  }
+</style>

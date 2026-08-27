@@ -1,0 +1,74 @@
+---
+// SiteHeader.astro — shared header for the hand-authored brochure pages
+// (`/`, `/compare`). Starlight renders its own header under `/docs/`; this
+// component is not used there. See design.md §4.
+import Logo from "../assets/logo.svg";
+---
+
+<header class="varroa-header">
+  <div class="varroa-shell varroa-header__inner">
+    <a href="/" class="varroa-header__brand" aria-label="Varroa home">
+      <Logo class="varroa-header__logo" aria-hidden="true" focusable="false" />
+    </a>
+    <nav class="varroa-header__nav" aria-label="Primary">
+      <a href="/docs/">Docs</a>
+      <a href="/compare/">Compare</a>
+      <a href="https://github.com/VarroaCI/varroaci.github.io">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .varroa-header {
+    border-bottom: 1px solid var(--varroa-border);
+    background: var(--varroa-bg);
+  }
+
+  .varroa-header__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding-block: 1rem;
+  }
+
+  /* Inline SVG, not an <img>: the wordmark inherits `color` and the mark
+     reads --varroa-accent, so both flip with the light/dark theme. As an
+     <img> the fills were baked in and the wordmark vanished on light. */
+  .varroa-header__brand {
+    display: inline-flex;
+    color: var(--varroa-text);
+  }
+
+  .varroa-header__logo {
+    display: block;
+    height: 1.75rem;
+    width: auto;
+  }
+
+  .varroa-header__nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 22rem) {
+    .varroa-header__nav {
+      gap: 0.5rem 0.9rem;
+      font-size: 0.88rem;
+    }
+  }
+
+  .varroa-header__nav a {
+    color: var(--varroa-text-dim);
+    text-decoration: none;
+  }
+
+  .varroa-header__nav a:hover,
+  .varroa-header__nav a:focus-visible {
+    color: var(--varroa-accent-high);
+  }
+</style>

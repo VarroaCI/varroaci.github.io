@@ -1,0 +1,29 @@
+---
+// SiteTitle.astro — Starlight's site-title override, so `/docs/` carries the
+// same brand mark as the hand-authored brochure pages (`/`, `/compare/`).
+//
+// The mark is rendered INLINE, exactly as SiteHeader.astro does, and never as
+// an <img>: an <img> is an isolated document and cannot see the `data-theme`
+// the site sets on the root, which is how the wordmark previously ended up
+// hardcoded near-white and invisible in light mode.
+import Logo from "../assets/logo.svg";
+---
+
+<a href="/" class="varroa-site-title" aria-label="Varroa home">
+  <Logo class="varroa-site-title__logo" aria-hidden="true" focusable="false" />
+</a>
+
+<style>
+  .varroa-site-title {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--sl-color-white);
+    line-height: 1;
+  }
+
+  .varroa-site-title__logo {
+    height: 1.75rem;
+    width: auto;
+  }
+</style>

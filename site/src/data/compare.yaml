@@ -1,0 +1,131 @@
+# src/data/compare.yaml — /compare page data (task 4.4a).
+#
+# Row schema: {feature, varroa, cloudbees, source, verified}
+#   - source must be a URL under docs.cloudbees.com, or www.cloudbees.com
+#     for a page carrying substantive product documentation (not
+#     marketing copy).
+#   - verified is the ISO date (YYYY-MM-DD) a human confirmed the row
+#     against that source.
+#
+# scripts/validate-compare.mjs enforces the mechanical shape (all five
+# keys present, source host allow-listed, verified a valid ISO date) and
+# fails the build naming the offending row. It does NOT check substance —
+# that every claim about CloudBees is actually true today — which is a
+# human fact-check (a maintainer confirms each row against current sources,
+# a [USER] task not run by this change).
+#
+# The rows: list below is intentionally empty. The commented-out block
+# further down is a DRAFT set of candidate rows derived from
+# docs/internal/superpowers/specs/2026-05-25-cloudbees-feature-parity-gap-analysis.md
+# (an internal, already-dated snapshot) — content and phrasing only, not a
+# verified comparison. No row here has been fact-checked against current
+# CloudBees documentation, and none carries a `verified` date. Activating
+# a row means: (1) confirm the `varroa` and `cloudbees` claims are still
+# accurate today, (2) replace `source` with a real docs.cloudbees.com /
+# www.cloudbees.com URL that supports the `cloudbees` claim, (3) stamp
+# `verified` with today's date, (4) move the row out of the comment block
+# into the active `rows:` list below.
+
+
+# --- DRAFT ROWS (not active - see header above) ---------------------------
+#
+# Re-sourced and fact-checked 2026-08-27. Every source URL in the previous
+# draft returned 404: docs.cloudbees.com was reorganized. Three rows were
+# additionally found to be FALSE, because CloudBees shipped the features the
+# rows claimed were missing. Corrected text and live URLs are below; rows stay
+# commented and unstamped until the owner completes the 6.2 fact-check gate.
+#
+rows:
+  - feature: "Control plane scaling"
+    varroa: "The control plane is a Kubernetes operator that runs active/active across replicas, sharding controllers over a 256-shard ring. No Jenkins instance sits in the path."
+    cloudbees: "Operations center is deployed as a single instance with its own Jenkins home directory. CloudBees documents High Availability (active/active) for managed controllers, and for operations center documents built-in fault tolerance that restarts it when unhealthy."
+    source: "https://docs.cloudbees.com/docs/cloudbees-ci/latest/ha/ha-fundamentals"
+    verified: "2026-08-27"
+    # Evidence: the HA fundamentals page scopes active/active to controllers
+    # throughout and never mentions operations center. The architecture page
+    # lists the two capabilities separately: operations center gets "built-in
+    # fault tolerance, which automatically restarts the operations center when
+    # it is unhealthy"; managed controllers additionally get "High Availability
+    # (active/active), which can be configured on a controller when the
+    # controller is created."
+    # MUST NOT claim: that builds stop when operations center is down (auth
+    # falls back to a local cache), any maximum controllers-per-OC number (not
+    # published), or that operations center has no fault tolerance (it does;
+    # the honest point is that auto-restart is not active/active).
+
+  - feature: "Controller provisioning model"
+    varroa: "Every Jenkins controller is a Kubernetes Controller CRD; the operator reconciles it continuously (StatefulSet, RBAC, ingress, plugins)."
+    cloudbees: "Managed controllers are provisioned and administered through the operations center, which creates the underlying Kubernetes resources itself; admins work through the operations center UI and API rather than per-controller Kubernetes objects."
+    source: "https://docs.cloudbees.com/docs/cloudbees-ci/latest/architecture/ci-cloud"
+    verified: "2026-08-27"
+    # Evidence: "Managed controllers are provisioned and managed by the operations
+    # center, which creates all the necessary Kubernetes resources needed for
+    # provisioning and managing controllers."
+
+  - feature: "RBAC across the fleet"
+    varroa: "JenkinsRole and JenkinsRoleBinding are Kubernetes objects. The operator generates the authorization strategy for the open-source Role Strategy plugin, so the fleet needs no proprietary RBAC plugin."
+    cloudbees: "Role-based access control is provided by the CloudBees Role-Based Access Control plugin, which is license-gated, requires a CloudBees Jenkins core build, and is not published to the open-source Jenkins plugin index."
+    source: "https://docs.cloudbees.com/plugins/ci/nectar-rbac"
+    verified: "2026-08-27"
+    # Evidence: nectar-rbac lists "Minimum Jenkins required: 2.555.2-cb-40005"
+    # (a CloudBees core build) and depends on the nectar-license plugin;
+    # plugins.jenkins.io/nectar-rbac/ returns 404. The open-source counterpart
+    # Varroa targets is plugins.jenkins.io/role-strategy/.
+
+  - feature: "Configuration as Code delivery"
+    varroa: "A ComposedBundle merges ordered inputs from git repositories, OCI artifacts, and catalog items into one bundle, covering the same bundle files (jenkins, plugins, items, rbac, vars) with drift detection and gated rollout."
+    cloudbees: "The operations center stores and distributes CasC bundles to managed controllers, and bundle inheritance lets one bundle build on another. The items.yaml and rbac.yaml sections depend on CloudBees plugins that are not published to the open-source Jenkins plugin index."
+    source: "https://docs.cloudbees.com/docs/cloudbees-ci/latest/casc-bundle-reference/bundle-yaml"
+    verified: "2026-08-27"
+    # Varroa side verified in internal/bundle/: bundle.yaml, jenkins.yaml,
+    # plugins.yaml, items.yaml, rbac.yaml, catalog.yaml and vars.yaml are all
+    # handled, so the file-set parity claim is checkable in our own code.
+    # CloudBees side: items.yaml needs the CloudBees CasC Items Server/Commons
+    # plugins (both 404 on plugins.jenkins.io) and rbac.yaml needs the
+    # cloudBeesRoleBasedAccessControl authorization strategy.
+    # MUST NOT claim: that only CloudBees can do RBAC as code. The open-source
+    # role-strategy plugin ships its own JCasC integration. Job creation on
+    # pure OSS is also possible via the Job DSL plugin and a seed job, just in
+    # a different shape than a declarative items.yaml.
+
+  - feature: "Plugin distribution and air-gap"
+    varroa: "An in-cluster update center serves the exact pinned plugin set, with sha256-verified pull-through installs."
+    cloudbees: "Air-gapped installs mirror the CloudBees and Jenkins update sites through a private Nexus proxy repository, configured per environment."
+    source: "https://docs.cloudbees.com/docs/admin-resources/latest/plugin-management/managing-plugins-secure-environment"
+    verified: "2026-08-27"
+    # Reworded: "Artifactory" does not appear in CloudBees CI plugin-distribution
+    # docs; only Nexus is named. No checksum-verification language exists on the
+    # CloudBees side, so the sha256 claim stays one-sided and must not imply parity.
+
+  - feature: "AI-agent access"
+    varroa: "The MCP endpoint lets an agent compose a bundle, create a controller from it, and drive jobs, with every call under its own caller identity and RBAC."
+    cloudbees: "The CloudBees CI MCP Router (early access) gives agents one endpoint onto existing controllers for job, build, and SCM queries, authenticated with a single shared API token."
+    source: "https://docs.cloudbees.com/docs/cloudbees-ci-mcp-router/latest/"
+    verified: "2026-08-27"
+    # REFUTED as previously written ("No native Model Context Protocol
+    # integration"). CloudBees ships an MCP Router under an Agentic DevOps
+    # category. It fronts the open-source Jenkins MCP Server plugin, whose
+    # documented tools are all job/build/SCM query and interact operations with
+    # no controller-creation tool, and it authenticates with one shared
+    # base64 username:token reused for every call.
+
+  - feature: "Fleet-wide observability"
+    varroa: "A bounded, retained activity stream plus per-controller mite telemetry feeds a single dashboard across the whole brood."
+    cloudbees: "Operations Center provides centralized management and a central view into the cluster's managed controllers."
+    source: "https://docs.cloudbees.com/docs/cloudbees-ci/latest/architecture/ci-cloud"
+    verified: "2026-08-27"
+    # Trimmed: the old second clause ("deeper observability typically composes
+    # with an external stack") was our own inference with no CloudBees source.
+
+# --- DROPPED ROW ----------------------------------------------------------
+#
+#   "Idle-controller cost" claimed CloudBees has no built-in scale-to-zero
+#   hibernation lifecycle. This is false. CloudBees documents a managed
+#   controller hibernation feature that turns off idle controllers and wakes
+#   them on incoming requests: "CloudBees offers the managed controller
+#   hibernation feature, which helps you 'turn off' idle or unused managed
+#   controllers."
+#   https://docs.cloudbees.com/docs/cloudbees-ci/latest/cloud-admin-guide/managing-controllers
+#   A narrower distinction may exist (their hibernation is a per-controller
+#   plugin install and is instance-driven), but it is unverified, so the row is
+#   dropped rather than softened.

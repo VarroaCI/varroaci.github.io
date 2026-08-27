@@ -1,0 +1,14 @@
+# Escaping-link targets outside docs/ that are legitimately part of the site's
+# published subset. One repo-relative path per line; blank lines and #-comments
+# ignored.
+#
+# This file is the single source of truth, read by BOTH
+# hack/export-site.sh (to decide what to copy) and site/scripts/sync-docs.mjs
+# (to decide which escaping doc links may resolve to a GitHub blob URL rather
+# than failing the build).
+#
+# It lives under site/ rather than hack/ because the site repo is exported
+# without hack/. When sync-docs.mjs parsed the path list out of
+# export-site.sh, the exported repo had no such file and its very first
+# `npm run build` died with ENOENT.
+examples/controller-class.yaml

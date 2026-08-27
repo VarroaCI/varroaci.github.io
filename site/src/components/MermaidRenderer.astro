@@ -1,0 +1,256 @@
+---
+// Renders <pre class="mermaid"> blocks produced by remark-mermaid, and makes
+// each rendered diagram openable in a pan/zoom viewer (see
+// src/scripts/mermaid-zoom.js).
+//
+// Mermaid is large, so it is imported dynamically and only on pages that actually
+// contain a diagram. Pages without one download nothing.
+---
+
+<script>
+  import { createViewer, attachZoom } from "../scripts/mermaid-zoom.js";
+
+  const blocks = document.querySelectorAll("pre.mermaid[data-mermaid-source]");
+
+  if (blocks.length) {
+    const { default: mermaid } = await import("mermaid");
+    const viewer = createViewer();
+
+    /** Starlight writes the theme to data-theme on <html>. */
+    const isDark = () =>
+      document.documentElement.dataset.theme !== "light";
+
+    // Keep the original source: mermaid replaces innerHTML with SVG, so a re-render
+    // on theme change needs the text back.
+    for (const el of blocks) {
+      el.dataset.mermaidSource = el.textContent ?? "";
+    }
+
+    const render = async () => {
+      // Mermaid's own dark theme paints edge labels as light-grey text on a
+      // half-transparent grey plate, which fails WCAG AA contrast. Feed it the
+      // page's real surface and text tokens instead of letting it guess.
+      const token = (name) =>
+        getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      const dark = isDark();
+
+      // fontFamily is deliberately left at mermaid's default: it measures text to
+      // size nodes, and an inherited font it cannot measure clips the labels.
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: dark ? "dark" : "default",
+        securityLevel: "strict",
+        themeVariables: {
+          edgeLabelBackground: token("--varroa-bg-inset") || (dark ? "#16130c" : "#e8e1d1"),
+          // mermaid derives edge-label text from these.
+          textColor: token("--varroa-text") || (dark ? "#f5efe3" : "#1c1810"),
+          lineColor: token("--varroa-text-dim") || (dark ? "#b9b0a0" : "#4a4433"),
+        },
+      });
+
+      for (const [i, el] of blocks.entries()) {
+        const source = el.dataset.mermaidSource ?? "";
+        if (!source.trim()) continue;
+        try {
+          const { svg } = await mermaid.render(`mermaid-${i}-${Date.now()}`, source);
+          el.innerHTML = svg;
+          // Clear any failure from an earlier attempt: a theme re-render that
+          // succeeds must stop styling the block as source and restore its
+          // expand control.
+          el.removeAttribute("data-mermaid-failed");
+          el.setAttribute("data-mermaid-rendered", "");
+        } catch (err) {
+          // A diagram that fails to parse keeps its source visible rather than
+          // leaving an empty box. The flag matters: blocks are hidden until
+          // [data-mermaid-rendered] is set, so without it the fallback text is
+          // written into an element that never becomes visible.
+          el.textContent = source;
+          el.setAttribute("data-mermaid-rendered", "");
+          el.setAttribute("data-mermaid-failed", "");
+          console.error("mermaid: failed to render diagram", err);
+        }
+      }
+    };
+
+    await render();
+    attachZoom(blocks, viewer);
+
+    // Re-render on theme toggle so diagram colors follow the page. The zoom
+    // controls are re-attached because render() replaces each diagram's SVG.
+    new MutationObserver(async (records) => {
+      if (!records.some((r) => r.attributeName === "data-theme")) return;
+      await render();
+      attachZoom(blocks, viewer);
+    }).observe(document.documentElement, { attributes: true });
+  }
+</script>
+
+<style is:global>
+  pre.mermaid {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    text-align: center;
+  }
+
+  pre.mermaid[data-mermaid-rendered] svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Before hydration the source would flash as raw text. */
+  pre.mermaid:not([data-mermaid-rendered]) {
+    visibility: hidden;
+  }
+
+  /* ---- Expand affordance -------------------------------------------------
+     The figure wrapper exists so the button can sit outside the <pre>, which
+     scrolls horizontally. */
+
+  .mermaid-figure {
+    position: relative;
+  }
+
+  .mermaid-figure > pre.mermaid[data-mermaid-rendered] {
+    cursor: zoom-in;
+  }
+
+  /* A diagram that failed to render shows its source, so it reads as a code
+     block rather than a broken image, and offers no zoom affordance. */
+  pre.mermaid[data-mermaid-failed] {
+    text-align: left;
+    white-space: pre;
+    cursor: auto;
+    padding: 1rem;
+    border: 1px solid var(--sl-color-gray-5, #3b352a);
+    border-radius: 0.35rem;
+    background: var(--sl-color-gray-6, #16130c);
+  }
+
+  .mermaid-figure:has(pre[data-mermaid-failed]) .mermaid-figure__expand {
+    display: none;
+  }
+
+  .mermaid-figure__expand {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    font: inherit;
+    font-size: 0.8rem;
+    line-height: 1;
+    color: var(--sl-color-gray-2, #b9b0a0);
+    background: var(--sl-color-gray-6, #16130c);
+    border: 1px solid var(--sl-color-gray-5, #3b352a);
+    border-radius: 0.35rem;
+    cursor: zoom-in;
+    /* Hidden until the diagram is hovered, but never removed from the tab
+       order: keyboard users get it back on focus. */
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .mermaid-figure:hover .mermaid-figure__expand,
+  .mermaid-figure__expand:focus-visible {
+    opacity: 1;
+  }
+
+  .mermaid-figure__expand:hover {
+    color: var(--sl-color-white);
+    border-color: var(--sl-color-accent, #e8a33d);
+  }
+
+  /* ---- Viewer ------------------------------------------------------------ */
+
+  dialog.mermaid-viewer {
+    width: min(96vw, 1600px);
+    height: min(94vh, 1200px);
+    max-width: none;
+    max-height: none;
+    padding: 0;
+    border: 1px solid var(--sl-color-gray-5, #3b352a);
+    border-radius: 0.6rem;
+    background: var(--sl-color-bg, #0b0a08);
+    color: var(--sl-color-text, #f5efe3);
+    overflow: hidden;
+  }
+
+  dialog.mermaid-viewer::backdrop {
+    background: rgb(0 0 0 / 0.85);
+  }
+
+  .mermaid-viewer__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid var(--sl-color-gray-5, #3b352a);
+    background: var(--sl-color-gray-6, #16130c);
+  }
+
+  .mermaid-viewer__btn {
+    min-width: 2rem;
+    padding: 0.3rem 0.6rem;
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1.2;
+    color: var(--sl-color-text, #f5efe3);
+    background: transparent;
+    border: 1px solid var(--sl-color-gray-5, #3b352a);
+    border-radius: 0.3rem;
+    cursor: pointer;
+  }
+
+  .mermaid-viewer__btn:hover {
+    border-color: var(--sl-color-accent, #e8a33d);
+  }
+
+  .mermaid-viewer__btn--close {
+    margin-left: auto;
+  }
+
+  .mermaid-viewer__level {
+    min-width: 4rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+    color: var(--sl-color-gray-2, #b9b0a0);
+  }
+
+  .mermaid-viewer__stage {
+    position: relative;
+    height: calc(100% - 3rem);
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+    /* Panning must not select the page behind the diagram. */
+    user-select: none;
+  }
+
+  .mermaid-viewer__stage[data-dragging] {
+    cursor: grabbing;
+  }
+
+  .mermaid-viewer__canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+
+  .mermaid-viewer__canvas svg {
+    display: block;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mermaid-figure__expand {
+      transition: none;
+    }
+  }
+</style>

@@ -1,0 +1,215 @@
+---
+import ogImage from "../assets/og-image.png";
+// src/pages/compare.astro — Varroa vs. CloudBees CI comparison (task 4.4b).
+// Table rows come from src/data/compare.generated.json (built by
+// scripts/validate-compare.mjs from src/data/compare.yaml). A
+// migration-story section follows the table. Same voice rule as index.astro:
+// human-written, jenkinsci/kubernetes-sigs register, no marketing
+// superlatives.
+import "../styles/tokens.css";
+import SiteBackdrop from "../components/SiteBackdrop.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import compareRows from "../data/compare.generated.json";
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Compare Varroa and CloudBees CI</title>
+    <meta
+      name="description"
+      content="How Varroa's CRD-native Jenkins controllers, bundles, and RBAC federation compare to CloudBees CI, and what changes if you migrate."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Varroa" />
+    <meta property="og:title" content={"Varroa compared with CloudBees CI"} />
+    <meta property="og:description" content={"How Varroa's Kubernetes-native model differs from CloudBees CI, sourced against current CloudBees documentation."} />
+    <meta property="og:url" content={new URL("/compare", Astro.site).href} />
+    <meta property="og:image" content={new URL(ogImage.src, Astro.site).href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={"Varroa compared with CloudBees CI"} />
+    <meta name="twitter:description" content={"How Varroa's Kubernetes-native model differs from CloudBees CI, sourced against current CloudBees documentation."} />
+    <meta name="twitter:image" content={new URL(ogImage.src, Astro.site).href} />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("starlight-theme");
+          var theme = stored || "dark";
+          document.documentElement.dataset.theme = theme;
+          if (!stored) localStorage.setItem("starlight-theme", "dark");
+        } catch (e) {
+          // Storage inaccessible — the dark default set on <html> above holds.
+        }
+      })();
+    </script>
+  </head>
+  <body class="varroa-brochure">
+    <SiteBackdrop />
+    <SiteHeader />
+
+    <main class="varroa-shell varroa-compare">
+      <h1>Varroa vs. CloudBees CI</h1>
+      <p class="varroa-compare__intro">
+        A feature-by-feature comparison for teams evaluating Varroa against CloudBees CI. Every row below is fact-checked against
+        current CloudBees documentation and dated when it was last confirmed.
+      </p>
+
+      {compareRows.length > 0 ? (
+        <div class="varroa-compare__table-wrap">
+          <table class="varroa-compare__table">
+            <caption class="varroa-visually-hidden">Feature comparison between Varroa and CloudBees CI</caption>
+            <thead>
+              <tr>
+                <th scope="col">Feature</th>
+                <th scope="col">Varroa</th>
+                <th scope="col">CloudBees CI</th>
+                <th scope="col">Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              {compareRows.map((row) => (
+                <tr>
+                  <th scope="row">{row.feature}</th>
+                  <td>{row.varroa}</td>
+                  <td>{row.cloudbees}</td>
+                  <td>
+                    <a class="varroa-link" href={row.source}>
+                      docs
+                    </a>{" "}
+                    <span class="varroa-compare__verified">(verified {row.verified})</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p class="varroa-compare__pending">
+          The comparison table is being fact-checked against current CloudBees CI documentation before publication.
+        </p>
+      )}
+
+      <section class="varroa-compare__story" aria-labelledby="migration-heading">
+        <h2 id="migration-heading">If you're migrating from CloudBees CI</h2>
+        <p>
+          The core concepts map over directly, even though the mechanics differ:
+        </p>
+        <ul>
+          <li>
+            <strong>CasC bundles ≈ <a class="varroa-link" href="/docs/config/composed-bundles/">Composed bundles</a>.</strong> Where
+            CloudBees CI's Configuration as Code plugin reads a bundle per controller, Varroa's <code class="varroa-mono">ComposedBundle</code>{" "}
+            CRD merges ordered git, OCI, and catalog inputs into one resolved <code class="varroa-mono">jenkins.yaml</code>, reused
+            across as many controllers as reference it.
+          </li>
+          <li>
+            <strong>Managed controllers ≈ <a class="varroa-link" href="/docs/architecture/overview/">Controller CRDs</a>.</strong>{" "}
+            Operations Center's managed-controller concept becomes a native Kubernetes object: <code class="varroa-mono">kubectl get controller</code> shows every Jenkins instance in the brood, its phase, and its owning namespace.
+          </li>
+          <li>
+            <strong>What's different.</strong> There's no separate Operations Center process. The operator, gateway, and BFF are the
+            control plane, deployed once per cluster via the <a class="varroa-link" href="/docs/install/helm-install/">Helm chart</a>.
+            Authorization is federated from cluster-scoped RBAC CRDs rather than configured per controller, and plugins come from an
+            in-cluster <a class="varroa-link" href="/docs/operations/update-center/">update center</a> Varroa manages, not a per-environment
+            mirror you maintain by hand.
+          </li>
+        </ul>
+        <p>
+          Start with the <a class="varroa-link" href="/docs/tutorials/first-controller/">first-controller tutorial</a>: an empty
+          cluster to a running Jenkins in three steps, no bundle repo required to begin.
+        </p>
+      </section>
+    </main>
+
+    <SiteFooter />
+  </body>
+</html>
+
+<style>
+  .varroa-compare {
+    padding-block: 3rem 4rem;
+  }
+
+  .varroa-compare h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  }
+
+  .varroa-compare__intro {
+    max-width: 42rem;
+    color: var(--varroa-text-dim);
+    margin: 0 0 2rem;
+  }
+
+  .varroa-compare__pending {
+    border: 1px solid var(--varroa-border);
+    border-radius: 0.5rem;
+    background: var(--varroa-bg-inset);
+    padding: 1.25rem 1.5rem;
+    color: var(--varroa-text-dim);
+    max-width: 42rem;
+  }
+
+  .varroa-compare__table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--varroa-border);
+    border-radius: 0.5rem;
+  }
+
+  .varroa-compare__table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 42rem;
+  }
+
+  .varroa-compare__table th,
+  .varroa-compare__table td {
+    text-align: left;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--varroa-border);
+    vertical-align: top;
+    font-size: 0.92rem;
+  }
+
+  .varroa-compare__table thead th {
+    background: var(--varroa-bg-raised);
+    color: var(--varroa-text-faint);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+
+  .varroa-compare__verified {
+    display: block;
+    color: var(--varroa-text-faint);
+    font-size: 0.8rem;
+    margin-top: 0.15rem;
+  }
+
+  .varroa-compare__story {
+    margin-top: 3rem;
+    max-width: 46rem;
+  }
+
+  .varroa-compare__story ul {
+    padding-left: 1.25rem;
+  }
+
+  .varroa-compare__story li {
+    margin-bottom: 0.85rem;
+    color: var(--varroa-text-dim);
+  }
+
+  .varroa-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+</style>

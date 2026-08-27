@@ -1,0 +1,12 @@
+<!-- The hexagon mark is the shipping brand asset, chosen 2026-08-27. It is no
+     longer a placeholder and task 4.5b no longer blocks on it.
+
+     Rendered inline by SiteHeader.astro (never as an <img>), so the mark
+     reads the page's own theme tokens: an <img> is an isolated document and
+     cannot see the `data-theme` the site sets on the root, which is how the
+     wordmark ended up hardcoded near-white and invisible in light mode. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 32">
+  <polygon points="16,4 27,10 27,22 16,28 5,22 5,10" fill="none" stroke="var(--varroa-accent, #e8a33d)" stroke-width="2"/>
+  <circle cx="16" cy="16" r="5" fill="var(--varroa-accent, #e8a33d)"/>
+  <text x="34" y="21" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="currentColor">varroa</text>
+</svg>

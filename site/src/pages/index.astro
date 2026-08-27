@@ -1,0 +1,529 @@
+---
+import { Image } from "astro:assets";
+import ogImage from "../assets/og-image.png";
+import dashboardShot from "../assets/dashboard.webp";
+import controllersShot from "../assets/controllers.webp";
+import detailShot from "../assets/controller-detail.webp";
+// src/pages/index.astro — the varroa.dev brochure landing page. Frozen
+// section order per design.md §4: (1) hero, (2) MCP/agentic showcase +
+// screenshot placeholder, (3) six-pillar grid, (4) CloudBees teaser,
+// (5) footer. Order is enforced by scripts/check-section-order.mjs, not
+// by this comment. The brochure carries no scale figures (design §6).
+import "../styles/tokens.css";
+import SiteBackdrop from "../components/SiteBackdrop.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import McpShowcase from "../components/McpShowcase.astro";
+
+const controllerSnippet = `apiVersion: varroa.dev/v1alpha1
+kind: Controller
+metadata:
+  name: team-alpha
+  namespace: varroa
+spec:
+  version: "2.516.3"
+  composedBundleRef:
+    name: platform-standard
+  className: standard`;
+
+const pillars = [
+  {
+    title: "CRD/GitOps-native controllers",
+    body: "Every Jenkins controller is a Kubernetes Controller CR, reconciled by an operator. Provision, configure, and observe it the same way you manage everything else in the cluster.",
+    href: "/docs/architecture/overview/",
+  },
+  {
+    title: "Fleet scale",
+    body: "A sharded, active/active operator and stateless gateway/BFF tiers scale independently of brood size, from a handful of controllers to hundreds.",
+    href: "/docs/architecture/scaling/",
+  },
+  {
+    title: "RBAC federation",
+    body: "Cluster-scoped JenkinsRole/JenkinsRoleBinding CRDs generate every controller's role-strategy configuration. You never hand-configure Jenkins authorization again.",
+    href: "/docs/security/jenkins-rbac/",
+  },
+  {
+    title: "In-cluster update center + air-gap",
+    body: "An in-cluster update center serves the exact plugin set Varroa pins, with sha256-verified pull-through, so air-gapped and restricted-egress installs stay servable.",
+    href: "/docs/operations/update-center/",
+  },
+  {
+    title: "Hibernation & cost",
+    body: "Idle controllers scale to zero and wake on the next request or webhook, so brood cost tracks actual usage instead of always-on Jenkins pods.",
+    href: "/docs/operations/lifecycle/",
+  },
+  {
+    title: "MCP & agentic development",
+    body: "A Model Context Protocol endpoint lets AI assistants create controllers, compose bundles, and drive Jenkins jobs, each under the calling identity's own RBAC.",
+    href: "/docs/agents/overview/",
+  },
+];
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Varroa: Kubernetes-native Jenkins fleet management</title>
+    <meta
+      name="description"
+      content="Manage hundreds of Jenkins controllers as Kubernetes resources: CRD-native provisioning, RBAC federation, an in-cluster update center, hibernation, and MCP-driven agentic operations."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Varroa" />
+    <meta property="og:title" content={"Varroa: Kubernetes-native Jenkins fleet management"} />
+    <meta property="og:description" content={"Every Jenkins controller as a Kubernetes resource, and the whole fleet over the Model Context Protocol."} />
+    <meta property="og:url" content={new URL("/", Astro.site).href} />
+    <meta property="og:image" content={new URL(ogImage.src, Astro.site).href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={"Varroa: Kubernetes-native Jenkins fleet management"} />
+    <meta name="twitter:description" content={"Every Jenkins controller as a Kubernetes resource, and the whole fleet over the Model Context Protocol."} />
+    <meta name="twitter:image" content={new URL(ogImage.src, Astro.site).href} />
+    <script>
+      // Default first-time visitors to dark theme, mirroring the Starlight
+      // head-script default in astro.config.mjs (see task 2.1/4.1). Only
+      // writes the storage key when absent, so a saved choice is never
+      // overwritten.
+      (function () {
+        try {
+          var stored = localStorage.getItem("starlight-theme");
+          var theme = stored || "dark";
+          document.documentElement.dataset.theme = theme;
+          if (!stored) localStorage.setItem("starlight-theme", "dark");
+        } catch (e) {
+          // Storage inaccessible — the dark default set on <html> above holds.
+        }
+      })();
+    </script>
+  </head>
+  <body class="varroa-brochure">
+    <SiteBackdrop />
+    <SiteHeader />
+
+    <main>
+      <!-- (1) Hero -->
+      <section class="varroa-shell varroa-hero">
+        <h1>A Jenkins fleet your agents can run</h1>
+        <p class="varroa-hero__sub">
+          Varroa runs every Jenkins controller as a Kubernetes resource and exposes the whole fleet over the Model Context Protocol.
+          Ask an agent to create a controller, compose its config bundle, and run a job. It works under that agent's own identity and
+          RBAC, not a shared admin token.
+        </p>
+        <p class="varroa-hero__sub varroa-hero__sub--secondary">
+          Everything an agent can do, you can do declaratively. Provisioning, JCasC bundles, RBAC federation, plugin pinning, and
+          scale-to-zero are all driven from CRDs. It is the open-source alternative to Jenkins sprawl or a CloudBees CI contract.
+        </p>
+        <pre class="varroa-mono varroa-hero__snippet"><code>{controllerSnippet}</code></pre>
+        <div class="varroa-hero__ctas">
+          <a class="varroa-cta varroa-cta--primary" href="/docs/install/prerequisites/">Get started</a>
+          <a class="varroa-cta varroa-cta--secondary" href="https://github.com/VarroaCI/varroaci.github.io">View on GitHub</a>
+        </div>
+      </section>
+
+      <!-- (2) MCP/agentic showcase + screenshot placeholder -->
+      <section class="varroa-shell varroa-mcp" aria-labelledby="mcp-heading">
+        <h2 id="mcp-heading">Drive the fleet with an AI agent</h2>
+        <p class="varroa-mcp__intro">
+          <code class="varroa-mono">varroactl mcp</code> exposes Varroa over the Model Context Protocol. An agent can
+          compose a config bundle, create a controller from it, run a job, and read the result. Every call runs under its own
+          caller identity and RBAC.
+        </p>
+        <McpShowcase />
+        <figure class="varroa-shots">
+          <button
+            type="button"
+            class="varroa-shots__frame"
+            data-lightbox-open
+            data-lightbox-src={dashboardShot.src}
+            data-lightbox-alt="Varroa dashboard, full size: six connected Jenkins controllers across three namespaces, with per-controller health history and a recent activity feed."
+            aria-label="Expand the dashboard screenshot"
+          >
+          <Image
+            src={dashboardShot}
+            alt="Varroa dashboard showing a brood overview: six connected Jenkins controllers across three namespaces, with per-controller health history and a recent activity feed."
+            widths={[720, 1080, 1440]}
+            sizes="(min-width: 60rem) 60rem, 100vw"
+            loading="lazy"
+          />
+          </button>
+          <figcaption>
+            The brood overview: every controller, its phase, and its recent history in one place.{" "}
+            <span class="varroa-shots__hint">Tap to expand.</span>
+          </figcaption>
+        </figure>
+
+        <dialog class="varroa-lightbox" data-lightbox aria-label="Screenshot, expanded">
+          <form method="dialog" class="varroa-lightbox__close-form">
+            <button class="varroa-lightbox__close" aria-label="Close">&#215;</button>
+          </form>
+          <img data-lightbox-img src={dashboardShot.src} alt="" />
+        </dialog>
+      </section>
+
+      <!-- (3) Six-pillar grid -->
+      <section class="varroa-shell varroa-pillars" aria-labelledby="pillars-heading">
+        <h2 id="pillars-heading" class="varroa-visually-hidden">What Varroa gives you</h2>
+        <ul class="varroa-pillars__grid">
+          {pillars.map((pillar) => (
+            <li class="varroa-pillar">
+              <a href={pillar.href} class="varroa-pillar__link">
+                <h3>{pillar.title}</h3>
+                <p>{pillar.body}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <!-- (3b) Fleet and audit screenshots -->
+      <section class="varroa-shell varroa-gallery" aria-labelledby="gallery-heading">
+        <h2 id="gallery-heading" class="varroa-gallery__heading">Every controller, and everything that happened to it</h2>
+        <div class="varroa-gallery__grid">
+          <figure class="varroa-shots">
+            <button
+              type="button"
+              class="varroa-shots__frame"
+              data-lightbox-open
+              data-lightbox-src={controllersShot.src}
+              data-lightbox-alt="The Varroa controllers table, full size: five controllers across two clusters in connected, provisioning, and hibernated phases, with version and mite connection state."
+              aria-label="Expand the controllers screenshot"
+            >
+              <Image
+                src={controllersShot}
+                alt="The Varroa controllers table: five controllers across two clusters, showing connected, provisioning, and hibernated phases."
+                widths={[480, 720, 1080]}
+                sizes="(min-width: 60rem) 30rem, 100vw"
+                loading="lazy"
+              />
+            </button>
+            <figcaption>
+              One table for the fleet, across clusters and phases.{" "}
+              <span class="varroa-shots__hint">Tap to expand.</span>
+            </figcaption>
+          </figure>
+
+          <figure class="varroa-shots">
+            <button
+              type="button"
+              class="varroa-shots__frame"
+              data-lightbox-open
+              data-lightbox-src={detailShot.src}
+              data-lightbox-alt="A single Varroa controller page, full size: bundle, apply, and Jenkins status across the top, followed by its activity history and spec."
+              aria-label="Expand the controller detail screenshot"
+            >
+              <Image
+                src={detailShot}
+                alt="A single Varroa controller: bundle, apply, and Jenkins status, with its activity history below."
+                widths={[480, 720, 1080]}
+                sizes="(min-width: 60rem) 30rem, 100vw"
+                loading="lazy"
+              />
+            </button>
+            <figcaption>
+              One controller in depth: what it should run, what was applied, and what Jenkins reports.{" "}
+              <span class="varroa-shots__hint">Tap to expand.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- (4) CloudBees teaser -->
+      <section class="varroa-shell varroa-teaser" aria-labelledby="teaser-heading">
+        <h2 id="teaser-heading">Already running CloudBees CI?</h2>
+        <p>
+          See how Varroa's CRD-native controllers, bundles, and RBAC federation line up against CloudBees CI, and what changes if you
+          migrate.
+        </p>
+        <p>
+          The control planes differ most in how they scale. Operations center runs as a single instance with its own Jenkins home
+          directory. CloudBees documents High Availability (active/active) for managed controllers, and for operations center
+          documents fault tolerance that restarts it when unhealthy. Varroa's operator is not a Jenkins instance at all. It runs
+          active/active across replicas and shards controllers over a 256-shard ring, so the control plane scales by adding pods.
+        </p>
+        <a class="varroa-cta varroa-cta--secondary" href="/compare/">Compare Varroa to CloudBees CI</a>
+      </section>
+    </main>
+
+    <SiteFooter />
+  </body>
+</html>
+
+<script>
+  // Native <dialog> lightbox: Esc-to-close and focus trapping come free.
+  const dialog = document.querySelector("[data-lightbox]");
+  const image = document.querySelector("[data-lightbox-img]");
+  const openers = document.querySelectorAll("[data-lightbox-open]");
+  if (dialog instanceof HTMLDialogElement && image instanceof HTMLImageElement) {
+    for (const opener of openers) {
+      opener.addEventListener("click", () => {
+        image.src = opener.dataset.lightboxSrc ?? "";
+        image.alt = opener.dataset.lightboxAlt ?? "";
+        dialog.showModal();
+        // When the image is wider than the dialog (phones pan rather than
+        // shrink), start centred on the content, not pinned to the sidebar.
+        const centre = () => {
+          const overflow = dialog.scrollWidth - dialog.clientWidth;
+          if (overflow > 0) dialog.scrollLeft = overflow / 2;
+        };
+        image.complete ? centre() : image.addEventListener("load", centre, { once: true });
+      });
+    }
+    // Clicking the backdrop closes: the dialog element's own box is the
+    // backdrop hit area, so only a click outside the image should dismiss.
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+  }
+</script>
+
+<style>
+  .varroa-hero {
+    padding-block: 4rem 3rem;
+  }
+
+  .varroa-hero h1 {
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    line-height: 1.15;
+    margin: 0 0 1.25rem;
+    max-width: 44rem;
+  }
+
+  .varroa-hero__sub {
+    max-width: 42rem;
+    color: var(--varroa-text-dim);
+    font-size: 1.1rem;
+    margin: 0 0 1.25rem;
+  }
+
+  .varroa-hero__sub--secondary {
+    color: var(--varroa-text-faint);
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .varroa-hero__snippet {
+    max-width: 34rem;
+    background: var(--varroa-bg-inset);
+    border: 1px solid var(--varroa-border);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    font-size: 0.85rem;
+    overflow-x: auto;
+    margin: 0 0 2rem;
+  }
+
+  .varroa-hero__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+
+  .varroa-pillars {
+    padding-block: 2rem 3rem;
+    border-top: 1px solid var(--varroa-border);
+  }
+
+  .varroa-pillars__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.5rem;
+  }
+
+  /* Six pillars divide evenly at three columns. auto-fit alone gives a ragged
+     4+2 row on wide viewports. */
+  @media (min-width: 60rem) {
+    .varroa-pillars__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* The card must fill its grid row. A percentage height against an auto-height
+     grid item overflows instead of stretching, which made rows collide. */
+  .varroa-pillar {
+    display: flex;
+  }
+
+  .varroa-pillar__link {
+    display: block;
+    flex: 1;
+    padding: 1.5rem;
+    border: 1px solid var(--varroa-border);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: var(--varroa-text);
+    background: var(--varroa-bg-raised);
+  }
+
+  .varroa-pillar__link:hover,
+  .varroa-pillar__link:focus-visible {
+    border-color: var(--varroa-accent);
+  }
+
+  .varroa-pillar__link h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    color: var(--varroa-accent-high);
+  }
+
+  .varroa-pillar__link p {
+    margin: 0;
+    color: var(--varroa-text-dim);
+    font-size: 0.92rem;
+  }
+
+  .varroa-mcp {
+    padding-block: 2rem 3rem;
+    border-top: 1px solid var(--varroa-border);
+  }
+
+  .varroa-mcp__intro {
+    max-width: 46rem;
+    color: var(--varroa-text-dim);
+    margin: 0.5rem 0 2rem;
+  }
+
+  .varroa-shots {
+    margin: 2.5rem 0 0;
+  }
+
+  .varroa-shots__frame {
+    display: block;
+    width: 100%;
+    cursor: zoom-in;
+    appearance: none;
+    font: inherit;
+    color: inherit;
+    text-align: inherit;
+    padding: 0.75rem;
+    background: var(--varroa-shot-frame);
+    border: 1px solid var(--varroa-shot-frame-border);
+    border-radius: 12px;
+  }
+
+  .varroa-shots img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+  }
+
+  .varroa-shots__hint {
+    white-space: nowrap;
+  }
+
+  .varroa-lightbox {
+    padding: 0;
+    border: 1px solid var(--varroa-shot-frame-border);
+    border-radius: 12px;
+    background: var(--varroa-shot-frame);
+    max-width: min(96vw, 1600px);
+    max-height: 92vh;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .varroa-lightbox::backdrop {
+    background: rgb(0 0 0 / 0.72);
+  }
+
+  .varroa-lightbox img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 92vh;
+    object-fit: contain;
+  }
+
+  /* On a phone, fitting a 2160px dashboard into ~360px makes it unreadable.
+     Render it large enough to read and let the dialog pan instead. */
+  @media (max-width: 48rem) {
+    .varroa-lightbox img {
+      width: 760px;
+      max-width: none;
+      max-height: none;
+    }
+  }
+
+  .varroa-lightbox__close-form {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    margin: 0;
+    z-index: 1;
+  }
+
+  .varroa-lightbox__close {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #f4efe6;
+    background: rgb(0 0 0 / 0.55);
+    border: 1px solid var(--varroa-shot-frame-border);
+    border-radius: 999px;
+  }
+
+  .varroa-lightbox__close:hover {
+    background: rgb(0 0 0 / 0.8);
+  }
+
+  .varroa-shots figcaption {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--varroa-text-dim);
+  }
+
+  .varroa-gallery {
+    padding-block: 1rem 2rem;
+  }
+
+  .varroa-gallery__heading {
+    font-size: 1.35rem;
+    margin: 0 0 1.5rem;
+  }
+
+  .varroa-gallery__grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 60rem) {
+    .varroa-gallery__grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .varroa-gallery .varroa-shots {
+    margin: 0;
+  }
+
+  .varroa-teaser {
+    padding-block: 2rem 4rem;
+    border-top: 1px solid var(--varroa-border);
+  }
+
+  .varroa-teaser p {
+    max-width: 40rem;
+    color: var(--varroa-text-dim);
+    margin: 0.5rem 0 1.5rem;
+  }
+
+  .varroa-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+</style>

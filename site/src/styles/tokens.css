@@ -1,0 +1,253 @@
+/* src/styles/tokens.css — design tokens shared by the brochure pages and
+ * the Starlight theme (task 4.1). Dark-first, single amber/honey accent
+ * (hive identity); the light theme is derived from the same tokens rather
+ * than a separate palette. High-contrast neutral text, monospace accents
+ * for CRD/CLI content.
+ *
+ * Starlight also reads a handful of its own `--sl-*` custom properties;
+ * we set those from the same `--varroa-*` tokens below so the docs pages
+ * and the brochure pages never drift apart.
+ */
+
+:root {
+  /* Brand */
+  --varroa-accent: #e8a33d;
+  --varroa-accent-high: #ffc266;
+  --varroa-mono-font: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+  --varroa-sans-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Product screenshots are captured in the dashboard's own dark theme, so
+     their frame is deliberately theme-invariant: defined once here and never
+     redefined in the light block, it stays dark in both site themes. */
+  --varroa-shot-frame: #15130f;
+  --varroa-shot-frame-border: #332f24;
+
+  /* Dark theme (default) */
+  --varroa-bg: #0b0a08;
+  --varroa-bg-raised: #15130f;
+  --varroa-bg-inset: #1e1b15;
+  --varroa-border: #332f24;
+  --varroa-text: #f4efe6;
+  --varroa-text-dim: #c9c0af;
+  --varroa-text-faint: #8f8672;
+
+  color-scheme: dark;
+}
+
+/* Starlight theme variable mapping — dark (default). */
+:root {
+  --sl-color-accent: var(--varroa-accent);
+  --sl-color-accent-high: var(--varroa-accent-high);
+  --sl-color-bg: var(--varroa-bg);
+  --sl-color-bg-nav: var(--varroa-bg-raised);
+  --sl-color-bg-sidebar: var(--varroa-bg-raised);
+  --sl-color-black: var(--varroa-bg);
+  --sl-color-white: var(--varroa-text);
+  --sl-color-text: var(--varroa-text);
+  --sl-color-text-accent: var(--varroa-accent-high);
+  --sl-color-gray-1: var(--varroa-text);
+  --sl-color-gray-2: var(--varroa-text-dim);
+  --sl-color-gray-3: var(--varroa-text-dim);
+  --sl-color-gray-4: var(--varroa-text-faint);
+  --sl-color-gray-5: var(--varroa-border);
+  --sl-color-gray-6: var(--varroa-bg-inset);
+  --sl-font: var(--varroa-sans-font);
+  --sl-font-mono: var(--varroa-mono-font);
+}
+
+/* Light theme — same tokens, light values. Starlight toggles this by
+ * setting `data-theme="light"` on the root; the brochure pages read the
+ * same `--varroa-*` custom properties so both surfaces flip together. */
+:root[data-theme="light"] {
+  --varroa-bg: #faf7f0;
+  --varroa-bg-raised: #f1ece1;
+  --varroa-bg-inset: #e8e1d1;
+  --varroa-border: #d9d0ba;
+  --varroa-text: #1c1810;
+  --varroa-text-dim: #4a4433;
+  --varroa-text-faint: #6d6650;
+  --varroa-accent: #a6650f;
+  --varroa-accent-high: #7d4b09;
+
+  color-scheme: light;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent: var(--varroa-accent);
+  --sl-color-accent-high: var(--varroa-accent-high);
+  --sl-color-bg: var(--varroa-bg);
+  --sl-color-bg-nav: var(--varroa-bg-raised);
+  --sl-color-bg-sidebar: var(--varroa-bg-raised);
+  /* Starlight inverts these two in light theme: --sl-color-white is its
+     highest-contrast foreground (headings, active nav) and --sl-color-black is
+     the page background. Mapping them the other way round paints every heading
+     in the background color. */
+  --sl-color-black: var(--varroa-bg);
+  --sl-color-white: var(--varroa-text);
+  --sl-color-text: var(--varroa-text);
+  --sl-color-text-accent: var(--varroa-accent-high);
+  --sl-color-gray-1: var(--varroa-text);
+  --sl-color-gray-2: var(--varroa-text-dim);
+  --sl-color-gray-3: var(--varroa-text-dim);
+  --sl-color-gray-4: var(--varroa-text-faint);
+  --sl-color-gray-5: var(--varroa-border);
+  --sl-color-gray-6: var(--varroa-bg-inset);
+}
+
+/* Brochure-page primitives (Starlight pages use its own component styles;
+ * these are consumed by the hand-authored `/` and `/compare` pages and the
+ * shared SiteHeader/SiteFooter). */
+body.varroa-brochure {
+  margin: 0;
+  background: var(--varroa-bg);
+  color: var(--varroa-text);
+  font-family: var(--varroa-sans-font);
+  line-height: 1.55;
+}
+
+.varroa-shell {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.varroa-mono {
+  font-family: var(--varroa-mono-font);
+}
+
+.varroa-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.4rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.varroa-cta--primary {
+  background: var(--varroa-accent);
+  color: #16130c;
+}
+
+.varroa-cta--primary:hover,
+.varroa-cta--primary:focus-visible {
+  background: var(--varroa-accent-high);
+}
+
+.varroa-cta--secondary {
+  background: transparent;
+  color: var(--varroa-text);
+  border-color: var(--varroa-border);
+}
+
+.varroa-cta--secondary:hover,
+.varroa-cta--secondary:focus-visible {
+  border-color: var(--varroa-accent);
+  color: var(--varroa-accent-high);
+}
+
+a.varroa-link {
+  color: var(--varroa-accent-high);
+}
+
+:focus-visible {
+  outline: 2px solid var(--varroa-accent-high);
+  outline-offset: 2px;
+}
+
+/* Wide-viewport sizing — the Material for MkDocs model.
+ *
+ * A reading column has two sizes, and conflating them is what makes a docs page
+ * look starved on a large display. The measure is how many characters fit on a
+ * line, and ~70ch is right at any screen size. The width is how many pixels
+ * that measure occupies, and it should grow with the screen. Starlight pins the
+ * root type at 16px, so 45rem is permanently 720px: the measure never changes,
+ * but past ~1400px the page stops using the display and reads as a small block
+ * of text stranded in a wide window.
+ *
+ * Material for MkDocs — what argo-cd.readthedocs.io runs — scales the root type
+ * instead of the measure. The column keeps its ~70ch, the type grows with the
+ * viewport, and the three-column shell is centred in a capped grid. Measured on
+ * argo-cd.readthedocs.io at 2560px: shell 1464px, nav 290px, prose 826px at
+ * 69.2ch, body text 19.2px.
+ *
+ * Their `em` media queries resolve against the browser's 16px default, not the
+ * scaled root, so the breakpoints are 1600px and 2000px. Ours do too — that is
+ * what keeps the ramp from feeding back on itself. */
+/* Docs layout — centre the three-column shell inside the cap.
+ *
+ * Starlight anchors the prose with `margin-inline: auto 0`, pinning it flush
+ * against the table of contents and parking every bit of leftover width in one
+ * dead gutter between the nav and the text. Closing that gutter and centring
+ * the shell puts the surplus on both sides instead, which is Material's
+ * `.md-grid { margin-inline: auto; max-width: 61rem }`.
+ *
+ * Centring only works because the type scales with it. An earlier revision
+ * centred the shell at a fixed 16px root, which moved the nav inward without
+ * giving anything back and left it stranded mid-screen.
+ *
+ * `100%` resolves against `.page`'s content box for `.main-frame` and against
+ * the initial containing block for the fixed panes. Those agree only because
+ * `.page` is full-bleed with no max-width and no inline padding; give it either
+ * and the columns stop tracking each other. */
+@media (min-width: 72rem) {
+  :root {
+    /* Sidebars + 45rem prose + the 3rem of gutters Starlight puts around it. */
+    --varroa-docs-shell: 85.5rem;
+    --varroa-docs-gutter: max(0px, (100% - var(--varroa-docs-shell)) / 2);
+    /* Close Starlight's dead gutter: prose starts beside the nav. */
+    --sl-content-margin-inline: 0;
+  }
+
+  .page > header {
+    padding-inline: calc(var(--varroa-docs-gutter) + 1.5rem);
+  }
+
+  .sidebar-pane {
+    inset-inline-start: var(--varroa-docs-gutter);
+  }
+
+  /* Lead with `--sl-content-inline-start`, not `--sl-sidebar-width`: Starlight
+     sets the former only under `[data-has-sidebar]`, so a sidebarless page
+     falls back to 0 instead of being indented past a nav that isn't there. */
+  .main-frame {
+    padding-inline-start: calc(
+      var(--varroa-docs-gutter) + var(--sl-content-inline-start, 0px)
+    );
+    padding-inline-end: var(--varroa-docs-gutter);
+  }
+
+  /* Starlight sizes the ToC band to absorb half the leftover width, which
+     strands the headings far from the prose they index. Cap it to the ToC. */
+  .right-sidebar-container {
+    width: var(--sl-sidebar-width);
+  }
+
+  .right-sidebar {
+    inset-inline-start: auto;
+    inset-inline-end: var(--varroa-docs-gutter);
+    width: var(--sl-sidebar-width);
+  }
+}
+
+@media (min-width: 100em) {
+  :root {
+    /* Body 17.6px, matching Material's 22px root x its 0.8rem body size. */
+    font-size: 110%;
+    /* The nav is furniture, not reading matter: hold it near 290px in real
+       pixels while the prose scales, instead of letting it grow to 360px. */
+    --sl-sidebar-width: 16.5rem;
+    --varroa-docs-shell: 81rem;
+  }
+}
+
+@media (min-width: 125em) {
+  :root {
+    /* Body 19.2px, matching Material's 24px root x 0.8rem. */
+    font-size: 120%;
+    --sl-sidebar-width: 15rem;
+    --varroa-docs-shell: 78rem;
+  }
+}

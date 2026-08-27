@@ -1,0 +1,176 @@
+---
+// McpShowcase.astro — animated terminal transcript of an agent driving the
+// fleet through varroa-mcp-tools: compose bundle → create controller → run job
+// → read result. That order is load-bearing, not cosmetic: a Controller
+// references a ComposedBundle, so the bundle has to exist first.
+// Vanilla JS/CSS only, no framework (task 4.3).
+//
+// The brochure deliberately carries no MCP client configuration. Setup lives in
+// the handbook at docs/agents/connecting.md; this section sells the capability
+// and links onward.
+//
+// Accessibility: `prefers-reduced-motion` renders the full transcript
+// immediately, no animation.
+
+const transcript = [
+  { kind: "prompt", text: "Bring up a Jenkins controller for team-alpha and run its smoke-test job." },
+  { kind: "tool", text: "create_composed_bundle({ name: \"team-alpha-baseline\", inputs: [...] })" },
+  { kind: "result", text: "→ ComposedBundle/team-alpha-baseline ready, contentRef resolved" },
+  { kind: "tool", text: "create_controller({ name: \"team-alpha\", namespace: \"teams-platform\", composedBundleRef: \"team-alpha-baseline\" })" },
+  { kind: "result", text: "→ Controller/team-alpha created, phase: Provisioning" },
+  { kind: "tool", text: "call_jenkins_tool({ name: \"team-alpha\", method: \"tools/call\", params: { name: \"build_job\", … } })" },
+  { kind: "result", text: "→ Build #1 queued, then SUCCESS" },
+  { kind: "tool", text: "call_jenkins_tool({ name: \"team-alpha\", method: \"tools/call\", params: { name: \"get_build_log\", … } })" },
+  { kind: "result", text: "→ \"smoke-test PASSED\"" },
+];
+---
+
+<div class="mcp-showcase">
+  <div class="mcp-showcase__terminal" data-mcp-terminal aria-label="Example agent session using varroa-mcp-tools" role="group">
+    <div class="mcp-showcase__titlebar" aria-hidden="true">
+      <span class="mcp-showcase__dot"></span>
+      <span class="mcp-showcase__dot"></span>
+      <span class="mcp-showcase__dot"></span>
+      <span class="mcp-showcase__titletext">agent session — varroa-mcp-tools</span>
+    </div>
+    <pre class="mcp-showcase__body" data-mcp-body tabindex="0" role="region" aria-label="Agent session transcript, scrollable"><code>{transcript.map((line) => (
+      <span class={`mcp-line mcp-line--${line.kind}`} data-mcp-line>{line.text}{"\n"}</span>
+    ))}</code></pre>
+  </div>
+
+  <p class="mcp-showcase__note">Example session. Tool names and arguments are real; the responses are illustrative.</p>
+
+</div>
+
+<script>
+  (function () {
+    const showcase = document.querySelector(".mcp-showcase");
+    if (!showcase) return;
+
+    const terminal = showcase.querySelector("[data-mcp-terminal]");
+    const lines = showcase.querySelectorAll("[data-mcp-line]");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion || !terminal) {
+      lines.forEach((line) => line.classList.add("is-visible"));
+    } else {
+      lines.forEach((line) => {
+        line.classList.remove("is-visible");
+      });
+      let i = 0;
+      const revealNext = () => {
+        if (i >= lines.length) return;
+        lines[i].classList.add("is-visible");
+        i += 1;
+        window.setTimeout(revealNext, 550);
+      };
+      // Start once the terminal scrolls into view, so the animation plays
+      // when a visitor actually reaches this section.
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              revealNext();
+              io.disconnect();
+            }
+          }
+        },
+        { threshold: 0.3 },
+      );
+      io.observe(terminal);
+    }
+
+  })();
+</script>
+
+<style>
+  .mcp-showcase {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .mcp-showcase__terminal {
+    border: 1px solid var(--varroa-border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--varroa-bg-inset);
+  }
+
+  .mcp-showcase__titlebar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 0.9rem;
+    background: var(--varroa-bg-raised);
+    border-bottom: 1px solid var(--varroa-border);
+  }
+
+  .mcp-showcase__dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: var(--varroa-border);
+    display: inline-block;
+  }
+
+  .mcp-showcase__titletext {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--varroa-text-faint);
+    font-family: var(--varroa-mono-font);
+  }
+
+  .mcp-showcase__body {
+    margin: 0;
+    padding: 1.1rem 1.2rem 1.4rem;
+    font-family: var(--varroa-mono-font);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .mcp-line {
+    display: block;
+    opacity: 0;
+    transform: translateY(0.15rem);
+  }
+
+  .mcp-line.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mcp-line {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+
+  .mcp-line--prompt {
+    color: var(--varroa-text);
+    font-weight: 600;
+  }
+
+  .mcp-line--tool {
+    color: var(--varroa-accent-high);
+  }
+
+  .mcp-line--result {
+    color: var(--varroa-text-dim);
+  }
+
+  .mcp-showcase__note {
+    margin: 0.75rem 0 0;
+    color: var(--varroa-text-faint);
+    font-size: 0.85rem;
+  }
+
+
+
+
+
+</style>
