@@ -9,7 +9,35 @@ varroactl <command> --help
 
 ## Install and connect
 
-Build the CLI from a source checkout:
+Every release publishes `varroactl` binaries for Linux and macOS on amd64 and
+arm64. Download the archive for your platform from the
+[latest release](https://github.com/VarroaCI/varroa-jenkins/releases/latest),
+verify it, and put it on your path:
+
+```bash
+# Resolve the newest release, or set VERSION explicitly to pin one.
+VERSION=$(curl -fsSL https://api.github.com/repos/VarroaCI/varroa-jenkins/releases/latest \
+  | grep -m1 '"tag_name"' | cut -d'"' -f4)
+VERSION=${VERSION#v}
+OS=linux   # or darwin
+ARCH=amd64 # or arm64
+
+curl -fsSLO "https://github.com/VarroaCI/varroa-jenkins/releases/download/v${VERSION}/varroactl_${VERSION}_${OS}_${ARCH}.tar.gz"
+curl -fsSLO "https://github.com/VarroaCI/varroa-jenkins/releases/download/v${VERSION}/SHA256SUMS"
+
+# macOS ships shasum rather than GNU sha256sum.
+if command -v sha256sum >/dev/null; then
+  sha256sum --ignore-missing -c SHA256SUMS
+else
+  grep " ./varroactl_${VERSION}_${OS}_${ARCH}.tar.gz$" SHA256SUMS | shasum -a 256 -c -
+fi
+
+tar -xzf "varroactl_${VERSION}_${OS}_${ARCH}.tar.gz"
+sudo install -m 0755 varroactl /usr/local/bin/varroactl
+varroactl version --client
+```
+
+Or build it from a source checkout:
 
 ```bash
 make build-cli

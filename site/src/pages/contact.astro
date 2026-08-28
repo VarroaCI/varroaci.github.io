@@ -1,0 +1,88 @@
+---
+import ogImage from "../assets/og-image.png";
+// src/pages/contact.astro — how to reach the Varroa maintainers. Same voice
+// rule as index.astro: human-written, jenkinsci/kubernetes-sigs register, no
+// marketing superlatives.
+import "../styles/tokens.css";
+import SiteBackdrop from "../components/SiteBackdrop.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Contact the Varroa maintainers</title>
+    <meta
+      name="description"
+      content="How to reach the Varroa maintainers: email, bug reports, and security disclosures."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Varroa" />
+    <meta property="og:title" content={"Contact the Varroa maintainers"} />
+    <meta property="og:description" content={"How to reach the Varroa maintainers: email, bug reports, and security disclosures."} />
+    <meta property="og:url" content={new URL("/contact", Astro.site).href} />
+    <meta property="og:image" content={new URL(ogImage.src, Astro.site).href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={"Contact the Varroa maintainers"} />
+    <meta name="twitter:description" content={"How to reach the Varroa maintainers: email, bug reports, and security disclosures."} />
+    <meta name="twitter:image" content={new URL(ogImage.src, Astro.site).href} />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("starlight-theme");
+          var theme = stored || "dark";
+          document.documentElement.dataset.theme = theme;
+          if (!stored) localStorage.setItem("starlight-theme", "dark");
+        } catch (e) {
+          // Storage inaccessible — the dark default set on <html> above holds.
+        }
+      })();
+    </script>
+  </head>
+  <body class="varroa-brochure">
+    <SiteBackdrop />
+    <SiteHeader />
+
+    <main class="varroa-shell varroa-contact">
+      <h1>Contact</h1>
+      <p>
+        Questions about running Varroa, feedback on the docs, or anything that
+        doesn't fit an issue tracker: email
+        <a href="mailto:nb@varroa.dev">nb@varroa.dev</a>.
+      </p>
+      <p>
+        Bug reports and feature requests belong on the
+        <a href="https://github.com/VarroaCI/varroa-jenkins/issues">issue tracker</a>,
+        where they stay visible to everyone.
+      </p>
+      <p>
+        For suspected security vulnerabilities, please email rather than opening
+        a public issue.
+      </p>
+    </main>
+
+    <SiteFooter />
+  </body>
+</html>
+
+<style>
+  .varroa-contact {
+    max-width: 46rem;
+    padding-block: 3rem;
+  }
+
+  .varroa-contact h1 {
+    margin-bottom: 1.25rem;
+  }
+
+  .varroa-contact p {
+    color: var(--varroa-text-dim);
+    line-height: 1.7;
+    margin-block: 0 1rem;
+  }
+</style>

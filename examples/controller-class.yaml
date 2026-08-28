@@ -49,9 +49,12 @@ spec:
     size: 100Gi
     storageClass: openebs-hostpath
 
-  # Mite sidecar image (converges live on an already-Connected Controller)
-  mite:
-    image: ghcr.io/varroaci/varroa-mite:latest
+  # A `mite:` block with an `image:` would go here. It is deliberately omitted:
+  # the mite ships inside the main Varroa image, and with no override the
+  # operator hands each mite its own image, so mites stay on the same version as
+  # the operator and gateway they talk to. Set it only to pin a mite build
+  # deliberately — it converges live on an already-Connected Controller, and a
+  # floating tag here will skew mites away from the installed chart version.
 
   # Ingress defaults (converge live)
   ingressClassName: nginx

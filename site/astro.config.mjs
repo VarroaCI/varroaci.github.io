@@ -24,7 +24,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/VarroaCI/varroaci.github.io",
+          href: "https://github.com/VarroaCI/varroa-jenkins",
         },
       ],
       // editLink.baseUrl deliberately left unset: sync-docs.mjs emits a

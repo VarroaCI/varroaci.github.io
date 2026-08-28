@@ -1,6 +1,6 @@
 ---
 // SiteFooter.astro — shared footer for the hand-authored brochure pages
-// (`/`, `/compare`). See design.md §4.
+// (`/`, `/compare`, `/contact`). See design.md §4.
 const year = new Date().getFullYear();
 ---
 
@@ -8,8 +8,9 @@ const year = new Date().getFullYear();
   <div class="varroa-shell varroa-footer__inner">
     <nav aria-label="Footer">
       <a href="/docs/">Docs</a>
-      <a href="https://github.com/VarroaCI/varroaci.github.io">GitHub</a>
-      <a href="https://github.com/VarroaCI/varroaci.github.io/blob/main/LICENSE">AGPL-3.0</a>
+      <a href="/contact/">Contact</a>
+      <a href="https://github.com/VarroaCI/varroa-jenkins">GitHub</a>
+      <a href="https://github.com/VarroaCI/varroa-jenkins/blob/main/LICENSE">AGPL-3.0</a>
     </nav>
     <p class="varroa-footer__copy">&copy; {year} Varroa. Kubernetes-native Jenkins fleet management.</p>
   </div>
