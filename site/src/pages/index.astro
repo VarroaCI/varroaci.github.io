@@ -237,12 +237,6 @@ const pillars = [
           See how Varroa's CRD-native controllers, bundles, and RBAC federation line up against CloudBees CI, and what changes if you
           migrate.
         </p>
-        <p>
-          The control planes differ most in how they scale. Operations center runs as a single instance with its own Jenkins home
-          directory. CloudBees documents High Availability (active/active) for managed controllers, and for operations center
-          documents fault tolerance that restarts it when unhealthy. Varroa's operator is not a Jenkins instance at all. It runs
-          active/active across replicas and shards controllers over a 256-shard ring, so the control plane scales by adding pods.
-        </p>
         <a class="varroa-cta varroa-cta--secondary" href="/compare/">Compare Varroa to CloudBees CI</a>
       </section>
     </main>
