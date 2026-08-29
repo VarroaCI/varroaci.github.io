@@ -1,0 +1,218 @@
+---
+import ogImage from "../assets/og-image.png";
+// src/pages/pricing.astro — commercial licensing for Varroa. Same voice rule
+// as index.astro: human-written, jenkinsci/kubernetes-sigs register, no
+// marketing superlatives. No dollar figures on this page — rates are quoted
+// directly while the product bakes; keep the pricing model described here
+// aligned with legal/commercial-license-agreement.md.
+import "../styles/tokens.css";
+import SiteBackdrop from "../components/SiteBackdrop.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+
+const description =
+  "Varroa pricing: free under the AGPL at any scale, or a commercial license priced per managed controller. Users, agents, and builds are unlimited on every tier.";
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Varroa pricing</title>
+    <meta name="description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Varroa" />
+    <meta property="og:title" content={"Varroa pricing"} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={new URL("/pricing", Astro.site).href} />
+    <meta property="og:image" content={new URL(ogImage.src, Astro.site).href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={"Varroa pricing"} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage.src, Astro.site).href} />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("starlight-theme");
+          var theme = stored || "dark";
+          document.documentElement.dataset.theme = theme;
+          if (!stored) localStorage.setItem("starlight-theme", "dark");
+        } catch (e) {
+          // Storage inaccessible — the dark default set on <html> above holds.
+        }
+      })();
+    </script>
+  </head>
+  <body class="varroa-brochure">
+    <SiteBackdrop />
+    <SiteHeader />
+
+    <main class="varroa-shell varroa-pricing">
+      <h1>Pricing</h1>
+      <p class="varroa-pricing__lede">
+        You pay for controllers Varroa manages — nothing else. Users, build
+        agents, and builds are unlimited on every tier, and the count that
+        matters is one your own cluster answers:
+        <code>kubectl get controllers -A</code>. There is no per-seat
+        licensing and nothing that meters your developers.
+      </p>
+
+      <div class="varroa-pricing__tiers">
+        <section class="varroa-pricing__tier">
+          <h2>Community</h2>
+          <p class="varroa-pricing__price">Free</p>
+          <p>
+            Varroa under the <a
+              href="https://github.com/VarroaCI/varroa-jenkins/blob/main/LICENSE"
+              >AGPL-3.0</a
+            >. Every feature, unlimited controllers, forever. Self-host it,
+            modify it, run your whole fleet on it. The AGPL asks one thing: if
+            you offer a modified Varroa to others over a network, you share
+            your modified source with those users.
+          </p>
+        </section>
+
+        <section class="varroa-pricing__tier varroa-pricing__tier--featured">
+          <h2>Commercial</h2>
+          <p class="varroa-pricing__price">
+            Per controller <span>annual subscription</span>
+          </p>
+          <p>
+            The same code under a commercial license from SB Studio LLC — no
+            copyleft obligations, private modifications stay private, and a
+            support SLA is included. Priced per managed controller in bands
+            that get cheaper as your fleet grows. Varroa is early; while we
+            work with our first commercial customers, rates are quoted
+            directly rather than posted — email
+            <a href="mailto:licensing@varroa.dev">licensing@varroa.dev</a>
+            with a rough controller count for a quote within a business day.
+          </p>
+        </section>
+
+        <section class="varroa-pricing__tier">
+          <h2>Site license</h2>
+          <p class="varroa-pricing__price">
+            Flat rate <span>per year</span>
+          </p>
+          <p>
+            Unlimited managed controllers, one flat number. For fleets large
+            enough that a ceiling matters more than a rate — procurement gets
+            a fixed cost, and controller counts stop being a licensing
+            question at all.
+          </p>
+        </section>
+      </div>
+
+      <section class="varroa-pricing__notes">
+        <h2>How it works</h2>
+        <p>
+          Both licenses cover identical software. There is no enterprise
+          edition, no feature gating, and no license key — a commercial
+          license changes your legal obligations, not the binaries you run.
+          Counts are self-reported once a year, with no audits and no
+          telemetry. The full terms are public:
+          <a
+            href="https://github.com/VarroaCI/varroa-jenkins/blob/main/COMMERCIAL-LICENSE.md"
+            >licensing overview</a
+          >
+          and the
+          <a
+            href="https://github.com/VarroaCI/varroa-jenkins/blob/main/legal/commercial-license-agreement.md"
+            >agreement template</a
+          >, so legal can read everything before anyone talks to us.
+        </p>
+        <p>
+          Most installations never need the commercial license. It exists for
+          organizations whose policies exclude the AGPL, or that modify
+          Varroa and offer it to others without publishing those changes.
+        </p>
+        <p>
+          To buy one: email
+          <a href="mailto:licensing@varroa.dev">licensing@varroa.dev</a> with
+          a rough controller count. You get the agreement and an invoice — no
+          sales calls required.
+        </p>
+      </section>
+    </main>
+
+    <SiteFooter />
+  </body>
+</html>
+
+<style>
+  .varroa-pricing {
+    max-width: 64rem;
+    padding-block: 3rem;
+  }
+
+  .varroa-pricing h1 {
+    margin-bottom: 1.25rem;
+  }
+
+  .varroa-pricing__lede {
+    max-width: 46rem;
+    color: var(--varroa-text-dim);
+    line-height: 1.7;
+    margin-block: 0 2.5rem;
+  }
+
+  .varroa-pricing__tiers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+  }
+
+  .varroa-pricing__tier {
+    border: 1px solid var(--varroa-border);
+    border-radius: 0.5rem;
+    background: var(--varroa-bg-raised);
+    padding: 1.5rem;
+  }
+
+  .varroa-pricing__tier--featured {
+    border-color: var(--varroa-accent);
+  }
+
+  .varroa-pricing__tier h2 {
+    margin-block: 0 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .varroa-pricing__price {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-block: 0 1rem;
+  }
+
+  .varroa-pricing__price span {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--varroa-text-faint);
+  }
+
+  .varroa-pricing__tier p {
+    color: var(--varroa-text-dim);
+    line-height: 1.65;
+    margin-block: 0 1rem;
+  }
+
+  .varroa-pricing__notes {
+    max-width: 46rem;
+  }
+
+  .varroa-pricing__notes h2 {
+    font-size: 1.2rem;
+    margin-block: 0 0.75rem;
+  }
+
+  .varroa-pricing__notes p {
+    color: var(--varroa-text-dim);
+    line-height: 1.7;
+    margin-block: 0 1rem;
+  }
+</style>
