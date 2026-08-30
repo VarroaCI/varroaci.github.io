@@ -13,6 +13,12 @@
   /* Brand */
   --varroa-accent: #e8a33d;
   --varroa-accent-high: #ffc266;
+
+  /* Saturated honey, the dashboard's --honey. Unlike --varroa-accent-high it is
+     never redefined for the light theme: it lights the hero's right-hand glow
+     lobe in both, and the light accent-high (#7d4b09) is darker than the accent,
+     so reusing it there darkens the corner instead of lighting it. */
+  --varroa-honey: #e0a21a;
   --varroa-mono-font: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
   --varroa-sans-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
@@ -27,6 +33,11 @@
   --varroa-bg-raised: #15130f;
   --varroa-bg-inset: #1e1b15;
   --varroa-border: #332f24;
+  /* Honeycomb lattice stroke, the dashboard's --border-strong. The backdrops
+     paint it at a fraction of full strength, where --varroa-border (a 1px
+     hairline token) disappears entirely. Both themes are tuned to the same
+     perceptual weight against their own background, not the same alpha. */
+  --varroa-border-strong: #473720;
   --varroa-text: #f4efe6;
   --varroa-text-dim: #c9c0af;
   --varroa-text-faint: #8f8672;
@@ -63,6 +74,7 @@
   --varroa-bg-raised: #f1ece1;
   --varroa-bg-inset: #e8e1d1;
   --varroa-border: #d9d0ba;
+  --varroa-border-strong: #d8c9ac;
   --varroa-text: #1c1810;
   --varroa-text-dim: #4a4433;
   --varroa-text-faint: #6d6650;

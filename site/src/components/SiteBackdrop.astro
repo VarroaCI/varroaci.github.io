@@ -12,6 +12,11 @@
 // The comb geometry is the login page's pattern verbatim (72 x 41.5692
 // userSpaceOnUse tile). Stroke is currentColor, so the theme rules at the
 // bottom of this file drive it in both light and dark.
+//
+// Three layers, one job each: the comb is structure (--varroa-border-strong),
+// the glow is brand (--varroa-accent / --varroa-honey), and the scrim buys
+// contrast back under the text column. Tinting the comb with the accent
+// collapses the first two and is what left light mode looking unpatterned.
 ---
 
 <div class="varroa-backdrop" aria-hidden="true">
@@ -75,30 +80,47 @@
     mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
   }
 
+  /* The lattice is structure, not brand: it strokes with --varroa-border-strong
+     and leaves the accent to the glow above. Tinting it with the accent instead
+     is what made light mode fail — the light accent is a mid-tone amber, and at
+     a decorative alpha over a near-white page it has almost no lightness delta
+     left. The two alphas differ because the themes' backgrounds sit at opposite
+     ends of the ramp; they are tuned to equal perceptual weight, not equal
+     alpha, matching the dashboard login page. */
   .varroa-backdrop__comb {
     position: absolute;
     inset: 0;
-    color: color-mix(in srgb, var(--varroa-accent) 9%, transparent);
+    color: color-mix(in srgb, var(--varroa-border-strong) 27%, transparent);
   }
 
   :root[data-theme="light"] .varroa-backdrop__comb {
-    color: color-mix(in srgb, var(--varroa-accent) 10%, transparent);
+    color: color-mix(in srgb, var(--varroa-border-strong) 35%, transparent);
   }
 
   /* The lattice is decoration, and body copy has to win against it. This pools
      background color under the text column so the pattern reads as texture at
-     the edges instead of lines running through the paragraphs. */
+     the edges instead of lines running through the paragraphs.
+
+     The center stop stays below full opacity on purpose: pooling opaque
+     --varroa-bg erased the lattice exactly where it is largest. At 88% the
+     surviving texture under the headline is well under one L* step, which no
+     body copy competes with, so readability holds with the pattern intact. */
   .varroa-backdrop__scrim {
     position: absolute;
     inset: 0;
     background: radial-gradient(
       55rem 34rem at 22% 34%,
-      var(--varroa-bg) 0%,
-      color-mix(in srgb, var(--varroa-bg) 82%, transparent) 42%,
+      color-mix(in srgb, var(--varroa-bg) 88%, transparent) 0%,
+      color-mix(in srgb, var(--varroa-bg) 62%, transparent) 42%,
       transparent 72%
     );
   }
 
+  /* Light theme runs both lobes cooler, since the same alpha reads harder
+     against a light background. The second lobe swaps to --varroa-honey rather
+     than tracking --varroa-accent-high as the dark rule does: accent-high is the
+     brighter of the pair only in dark theme. In light it is #7d4b09, darker than
+     the accent, so it smudged the corner instead of lighting it. */
   :root[data-theme="light"] .varroa-backdrop__glow {
     background:
       radial-gradient(
@@ -108,7 +130,7 @@
       ),
       radial-gradient(
         45rem 32rem at 88% 0%,
-        color-mix(in srgb, var(--varroa-accent-high) 8%, transparent),
+        color-mix(in srgb, var(--varroa-honey) 13%, transparent),
         transparent 68%
       );
   }
