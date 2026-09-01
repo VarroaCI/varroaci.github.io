@@ -10,6 +10,7 @@ import "../styles/tokens.css";
 import SiteBackdrop from "../components/SiteBackdrop.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
+import Analytics from "../components/Analytics.astro";
 import compareRows from "../data/compare.generated.json";
 ---
 
@@ -47,6 +48,7 @@ import compareRows from "../data/compare.generated.json";
         }
       })();
     </script>
+    <Analytics />
   </head>
   <body class="varroa-brochure">
     <SiteBackdrop />

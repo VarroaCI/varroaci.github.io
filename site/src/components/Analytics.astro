@@ -1,0 +1,58 @@
+---
+// Google Analytics 4 for varroa.dev — anonymous pageview and session tracking
+// only: no user IDs, no PII, no custom events. Rendered into the <head> of
+// every brochure page and, via Head.astro, every docs page.
+//
+// The measurement ID is public by design (it ships in the page source of every
+// GA-instrumented site); it is an identifier, not a credential.
+const MEASUREMENT_ID = "G-49W6MHF0R9";
+
+// Hosts whose traffic belongs in the property. The build-time PROD gate below
+// is not sufficient on its own: `astro preview` serves the production build,
+// and the public site repo is a forkable GitHub Pages project, so both would
+// otherwise report into varroa.dev's property. The runtime host check is what
+// keeps previews, forks, and any future staging deploy out of it — and it runs
+// before the tag is fetched, so an off-host page contacts Google not at all.
+const ANALYTICS_HOSTS = ["varroa.dev", "www.varroa.dev"];
+---
+
+{
+  import.meta.env.PROD && (
+    <script
+      is:inline
+      define:vars={{
+        measurementId: MEASUREMENT_ID,
+        analyticsHosts: ANALYTICS_HOSTS,
+      }}
+    >
+      (function () {
+        if (analyticsHosts.indexOf(location.hostname) === -1) return;
+
+        // Google's documented per-property opt-out: a visitor who sets the
+        // cookie `ga-disable-<id>=true` is not measured. Checked before the
+        // tag is fetched, so opting out also stops the request to Google.
+        var optOut = "ga-disable-" + measurementId;
+        if (document.cookie.indexOf(optOut + "=true") > -1) {
+          window[optOut] = true;
+          return;
+        }
+
+        var tag = document.createElement("script");
+        tag.async = true;
+        tag.src =
+          "https://www.googletagmanager.com/gtag/js?id=" +
+          encodeURIComponent(measurementId);
+        document.head.appendChild(tag);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () {
+          window.dataLayer.push(arguments);
+        };
+        window.gtag("js", new Date());
+        // anonymize_ip is a no-op in GA4, which truncates IPs unconditionally.
+        // It is set anyway: it costs nothing and states the intent in the one
+        // place a reader checks for it, the page source.
+        window.gtag("config", measurementId, { anonymize_ip: true });
+      })();
+    </script>
+  )
+}

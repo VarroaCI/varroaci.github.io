@@ -13,6 +13,7 @@ import "../styles/tokens.css";
 import SiteBackdrop from "../components/SiteBackdrop.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
+import Analytics from "../components/Analytics.astro";
 import McpShowcase from "../components/McpShowcase.astro";
 
 const controllerSnippet = `apiVersion: varroa.dev/v1alpha1
@@ -98,6 +99,7 @@ const pillars = [
         }
       })();
     </script>
+    <Analytics />
   </head>
   <body class="varroa-brochure">
     <SiteBackdrop />

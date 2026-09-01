@@ -11,7 +11,7 @@
     "dev": "astro dev",
     "prebuild": "node scripts/sync-docs.mjs && node scripts/validate-compare.mjs && node scripts/check-prose.mjs --strict",
     "build": "astro build",
-    "postbuild": "node scripts/check-brochure-links.mjs && node scripts/check-section-order.mjs",
+    "postbuild": "node scripts/check-brochure-links.mjs && node scripts/check-section-order.mjs && node scripts/check-analytics.mjs",
     "preview": "astro preview",
     "test": "node --test scripts/*.test.mjs"
   },

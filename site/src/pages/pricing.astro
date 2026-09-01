@@ -9,6 +9,7 @@ import "../styles/tokens.css";
 import SiteBackdrop from "../components/SiteBackdrop.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
+import Analytics from "../components/Analytics.astro";
 
 const description =
   "Varroa pricing: free under the AGPL at any scale, or a commercial license priced per managed controller. Users, agents, and builds are unlimited on every tier.";
@@ -45,6 +46,7 @@ const description =
         }
       })();
     </script>
+    <Analytics />
   </head>
   <body class="varroa-brochure">
     <SiteBackdrop />
