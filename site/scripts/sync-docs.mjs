@@ -344,8 +344,9 @@ export const NAV = {
   "operations/brood-schedules.md": { label: "Brood schedules", order: 5 },
   "operations/rollout-waves.md": { label: "Rollout waves", order: 6 },
   "operations/update-center.md": { label: "Update center", order: 7 },
-  "operations/observability.md": { label: "Observability", order: 8 },
-  "operations/troubleshooting.md": { label: "Troubleshooting", order: 9 },
+  "operations/jenkins-upgrades.md": { label: "Jenkins upgrades", order: 8 },
+  "operations/observability.md": { label: "Observability", order: 9 },
+  "operations/troubleshooting.md": { label: "Troubleshooting", order: 10 },
 
   // "API & CLI" is an explicit-link group in astro.config.mjs, so these two
   // need an entry for coverage but their label/order are not consumed.
