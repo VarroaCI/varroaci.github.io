@@ -37,7 +37,7 @@ export const THRESHOLDS = {
 
 export const WORD_LIMITS = {
   page: 1800,
-  corpus: 35000,
+  corpus: 60000,
 };
 
 // The identity terms are split across string concatenation so this shipped

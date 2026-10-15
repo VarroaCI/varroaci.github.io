@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// Enforces the brochure section order from design.md §4 against built output.
+// Enforces the brochure section order against built output.
 //
-// The order is load-bearing: the MCP showcase sits directly under the hero because
-// burying it below the pillar grid was the defect this check exists to prevent. A
-// comment in index.astro cannot enforce that, so this reads dist/.
+// The order is load-bearing: the three products sit directly under the hero, and
+// the MCP showcase follows them. Burying either below a screenshot gallery was the
+// defect this check exists to prevent. A comment in index.astro cannot enforce
+// that, so this reads dist/.
 //
 // Also asserts the brochure carries no scale figures (design §6).
 
@@ -13,13 +14,21 @@ import { fileURLToPath } from "node:url";
 
 const DIST = fileURLToPath(new URL("../dist", import.meta.url));
 
-/** Landmark sections on `/`, in the order design §4 requires. */
+/** Landmark sections on `/`, in the required order. */
 export const EXPECTED_ORDER = [
   "varroa-hero",
+  "varroa-products",
   "varroa-mcp",
-  "varroa-pillars",
+  "varroa-gallery",
   "varroa-teaser",
 ];
+
+/** Every `varroa-shell` section on the page, so an unlisted one cannot slip between two listed ones. */
+export function shellSectionCount(html) {
+  return [...html.matchAll(/<section[^>]*\bclass="([^"]*)"/g)].filter((m) =>
+    m[1].split(/\s+/).includes("varroa-shell"),
+  ).length;
+}
 
 /** Section class names in the order they appear in the document. */
 export function sectionOrder(html) {
@@ -71,6 +80,12 @@ function main() {
   if (order.join(",") !== EXPECTED_ORDER.join(",")) {
     failures.push(
       `section order is [${order.join(", ")}], expected [${EXPECTED_ORDER.join(", ")}]`,
+    );
+  }
+  const shells = shellSectionCount(html);
+  if (shells !== EXPECTED_ORDER.length) {
+    failures.push(
+      `index.html has ${shells} varroa-shell sections, expected ${EXPECTED_ORDER.length}; list a new section in EXPECTED_ORDER`,
     );
   }
 

@@ -5,6 +5,7 @@ import {
   EXPECTED_ORDER,
   scaleFigures,
   sectionOrder,
+  shellSectionCount,
   visibleText,
 } from "./check-section-order.mjs";
 
@@ -15,9 +16,15 @@ test("sectionOrder reports landmark sections in document order", () => {
   assert.deepEqual(sectionOrder(page(EXPECTED_ORDER)), EXPECTED_ORDER);
 });
 
-test("a showcase demoted below the pillar grid is detected", () => {
-  const demoted = ["varroa-hero", "varroa-pillars", "varroa-mcp", "varroa-teaser"];
+test("the products section demoted below the gallery is detected", () => {
+  const demoted = ["varroa-hero", "varroa-mcp", "varroa-gallery", "varroa-products", "varroa-teaser"];
   assert.notDeepEqual(sectionOrder(page(demoted)), EXPECTED_ORDER);
+});
+
+test("shellSectionCount counts every shell section, listed or not", () => {
+  const html = page(EXPECTED_ORDER.slice(0, 2)) + '<section class="varroa-shell varroa-new"></section>';
+  assert.equal(shellSectionCount(html), 3);
+  assert.equal(shellSectionCount('<section class="varroa-other"></section>'), 0);
 });
 
 test("unrelated sections are ignored", () => {
