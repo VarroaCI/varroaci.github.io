@@ -6,7 +6,9 @@ Varroa tracks upstream Jenkins LTS patches for the version profiles it manages. 
 
 A ticker reconciler checks each `lts`-channel `JenkinsVersionProfile` whose `spec.version` names a two-segment line (for example `2.555`) against the upstream update-center metadata Varroa already resolves plugins from. When it finds a patch newer than the profile's current `resolveVersion`, it builds a `ProfileCandidate` for that profile. Discovering a brand-new LTS line, or an EOL date on a line already in use, produces an `upgrade.upstream.observed` activity event only: informational, no candidate, no CRD write.
 
-The tracker never mutates a profile and never rolls anything by itself. It always checks upstream at updates.jenkins.io directly, with no in-cluster fallback source. When upstream can't be reached, whether from an air-gapped install, restricted egress, or a transient outage, the tick simply produces no new candidates and retries on the next one. Existing candidates and the profiles already in the cluster are unaffected. This is expected steady-state behavior in an air-gapped cluster, not a failure to alert on.
+The tracker never mutates a profile and never rolls anything by itself. It reads the host set in the `jenkins.upstreamURL` chart value. A controller created after the upgrade gets the matching JVM flags. A change to this value rolls each Connected controller and cell once, so its JVM gets the matching flags. That value defaults to `https://updates.jenkins.io`, and the tracker has no in-cluster fallback source. When the host is set to an empty string, the tracker does not start, and the operator logs `upgrade tracker off: jenkins upstream URL is empty` once. A mirror with the updates.jenkins.io layout works as a replacement host.
+
+When the host can't be reached, for example under restricted egress or a transient outage, the tick simply produces no new candidates and retries on the next one. Existing candidates and the profiles already in the cluster are unaffected. An air-gapped cluster that sets the value to empty makes no upstream request at all. For such a cluster, the absence of new candidates is expected, not a failure to alert on. See [Install in an Air-Gapped Cluster](../install/air-gapped.md#turn-off-upstream-reads).
 
 ## The `ProfileCandidate` lifecycle
 
@@ -22,7 +24,7 @@ Six conditions record how a candidate got there:
 
 | Condition | Meaning |
 |---|---|
-| `Resolved` | The candidate's target version and profile reference are valid. |
+| `Resolved` | The candidate's target version and profile reference are valid. `False` with reason `UpstreamMetadataDisabled` means no in-cluster update center serves the candidate and `jenkins.upstreamURL` is empty. The candidate waits, and it checks again every five minutes. Import the candidate's plugin pack into an update center with `oci` storage to resolve it. |
 | `ClosureClean` | The transitive plugin closure resolved without conflicts. |
 | `CoreCompatOK` | The resolved closure's plugin baseline is compatible with the candidate's Jenkins core. |
 | `PluginsServable` | A pin is servable when the store holds it, or when the update center serves it by pull-through. `PluginsUnservable` names pins the update center cannot get (`NotListed`, `ArchiveDisabled`). With pull-through off, `WaitingForUpdateCenter` names each unstored pin. `Unknown` (`ResolutionDegraded`) means upstream metadata is degraded, or the store inventory is incomplete because a plugin pack is unreadable. Each blocking state keeps the candidate `Pending`, and the candidate checks again on a later tick. |
@@ -42,7 +44,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
   https://<varroa-host>/api/v1/version-candidates/<name>/promote
 ```
 
-or via the `promote_version_candidate` MCP tool. Both list and inspect candidates first (`GET /api/v1/version-candidates`, `GET /api/v1/version-candidates/{name}`, and their `list_version_candidates`/`get_version_candidate` MCP equivalents) to review a candidate's phase, conditions, and pre-flight summary before acting.
+or via the `promote_version_candidate` MCP tool. Both list and inspect candidates first (`GET /api/v1/version-candidates`, `GET /api/v1/version-candidates/{name}`, and their `list_version_candidates`/`get_version_candidate` MCP equivalents) to review a candidate's phase, conditions, and pre-flight summary before acting. The list response also carries `upstreamMetadata` (`online`, `mirror`, or `off`). An `off` value means that Varroa discovers no candidates, so an empty list has a known cause.
 
 ## Controlling the rollout: `upgradePolicy`
 
@@ -70,7 +72,7 @@ A released target isn't considered done the moment the write lands. When the con
 
 ## Reviewing and rolling out a candidate in the dashboard
 
-Everything above is also driven from the dashboard, not just the API. Settings ▸ Versions lists each cluster's `JenkinsVersionProfile`s alongside any open `ProfileCandidate`s for them, split into an active table and a collapsed history of ones already promoted or superseded. Each active row shows the six gating conditions as chips and, once a pre-flight has run, how many controllers it flagged and why.
+Everything above is also driven from the dashboard, not just the API. Settings ▸ Versions lists each cluster's `JenkinsVersionProfile`s alongside any open `ProfileCandidate`s for them, split into an active table and a collapsed history of ones already promoted or superseded. Each active row shows the six gating conditions as chips and, once a pre-flight has run, how many controllers it flagged and why. When `jenkins.upstreamURL` is `""`, the tab shows a note in place of the empty-state line: "Upstream metadata is off. Varroa does not check for new Jenkins releases. A new Varroa release adds the next version profile."
 
 Promote is only enabled once a candidate reaches `Ready`, and clicking it asks for confirmation first. The confirmation copy tracks the cluster's `upgradePolicy`, so the operator sees the actual consequence, not just a version number, before committing to it. Under `auto` the confirmation reads: "This will roll every controller pinned to line `<line>` through the version-roll gate." Under `manual` it reads: "This will hold every controller pinned to line `<line>` with `UpgradePending` until released."
 

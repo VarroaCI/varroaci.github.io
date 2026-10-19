@@ -6,6 +6,7 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightLinksValidator from "starlight-links-validator";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.mjs";
+import { DOCS_GROUPS, sidebarFrom } from "./scripts/docs-groups.mjs";
 
 export default defineConfig({
   site: "https://varroa.dev",
@@ -32,22 +33,7 @@ export default defineConfig({
       // original docs/ source path. A global editLink.baseUrl would append
       // Starlight's *generated* path instead, which is wrong for renamed
       // README.md pages (see design §2).
-      sidebar: [
-        { label: "Architecture", items: [{ autogenerate: { directory: "docs/architecture" } }] },
-        { label: "Install", items: [{ autogenerate: { directory: "docs/install" } }] },
-        { label: "Tutorials", items: [{ autogenerate: { directory: "docs/tutorials" } }] },
-        { label: "Configuration", items: [{ autogenerate: { directory: "docs/config" } }] },
-        { label: "Security", items: [{ autogenerate: { directory: "docs/security" } }] },
-        { label: "AI & Agents", items: [{ autogenerate: { directory: "docs/agents" } }] },
-        { label: "Operations", items: [{ autogenerate: { directory: "docs/operations" } }] },
-        {
-          label: "API & CLI",
-          items: [
-            { label: "API reference", link: "/docs/api-reference/" },
-            { label: "varroactl CLI", link: "/docs/varroactl/" },
-          ],
-        },
-      ],
+      sidebar: sidebarFrom(DOCS_GROUPS),
       // Pagefind search stays on (Starlight's default — no `pagefind: false`
       // here).
       plugins: [

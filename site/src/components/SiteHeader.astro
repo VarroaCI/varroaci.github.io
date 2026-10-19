@@ -1,7 +1,8 @@
 ---
 // SiteHeader.astro — shared header for the hand-authored brochure pages
 // (`/`, `/compare`, `/pricing`, `/contact`). Starlight renders its own header under
-// `/docs/`; this component is not used there. See design.md §4.
+// `/docs/`; this component is not used there. See design.md §4. The nav
+// links to /, /agents, /compare, /pricing and /contact.
 import Logo from "../assets/logo.svg";
 ---
 
@@ -12,6 +13,7 @@ import Logo from "../assets/logo.svg";
     </a>
     <nav class="varroa-header__nav" aria-label="Primary">
       <a href="/docs/">Docs</a>
+      <a href="/agents/">Agents</a>
       <a href="/compare/">Compare</a>
       <a href="/pricing/">Pricing</a>
       <a href="https://github.com/VarroaCI/varroa-jenkins">GitHub</a>

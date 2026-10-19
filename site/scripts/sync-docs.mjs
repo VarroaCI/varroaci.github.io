@@ -337,13 +337,17 @@ export const NAV = {
   "security/runner-tokens.md": { label: "Runner tokens", order: 5 },
   "security/execute-groovy.md": { label: "executeGroovy", order: 6 },
   "security/headless-controllers.md": { label: "Headless controllers", order: 7 },
+  "security/outbound-connections.md": { label: "Outbound connections", order: 8 },
 
+  // Order follows the Agents section table. The Team agent pages take orders 4
+  // and 5 when they exist.
   "agents/overview.md": { label: "Overview", order: 1 },
   "agents/connecting.md": { label: "Connecting a client", order: 2 },
-  "agents/tools.md": { label: "Tool reference", order: 3 },
-  "agents/writing.md": { label: "Writing through MCP", order: 4 },
-  "agents/identity.md": { label: "Identity & auditing", order: 5 },
-  "agents/jenkins-tools.md": { label: "Jenkins controller tools", order: 6 },
+  "agents/assistant.md": { label: "Assistant", order: 3 },
+  "agents/identity.md": { label: "Identity & auditing", order: 4 },
+  "agents/jenkins-tools.md": { label: "Jenkins controller tools", order: 5 },
+  "agents/tools.md": { label: "Tool reference", order: 6 },
+  "agents/writing.md": { label: "Writing through MCP", order: 7 },
 
   "operations/reconciliation.md": { label: "Reconciliation", order: 1 },
   "operations/lifecycle.md": { label: "Lifecycle", order: 2 },
@@ -360,7 +364,7 @@ export const NAV = {
   "operations/cell-libraries.md": { label: "Pool libraries", order: 13 },
   "operations/script-approvals.md": { label: "Script approvals", order: 14 },
   "operations/runners.md": { label: "External runners", order: 15 },
-  "operations/agents.md": { label: "Agents", order: 16 },
+  "operations/agents.md": { label: "Agent Services", order: 16 },
   "operations/brood-operations.md": { label: "Brood operations", order: 17 },
   "operations/brood-schedules.md": { label: "Brood schedules", order: 18 },
   "operations/rollout-waves.md": { label: "Rollout waves", order: 19 },

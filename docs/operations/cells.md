@@ -1,13 +1,13 @@
 # Cells and Pipelines Tenants
 
-A cell is a shared Jenkins controller that runs many teams' pipelines as tenants.
+A cell is a shared Jenkins controller that runs many teams' pipelines.
 
 ## What a cell is
 
 A cell is a `Controller` with `spec.cell.enabled: true`. Its Jenkins home is an `emptyDir`, so a
 pod roll loses local state and mite identity. [Rehydration](#rehydration) restores build
 history, and the new instance [deletes the old agent pods](tenant-pod-templates.md#agent-pod-lifetime).
-`spec.cell.enabled` cannot change after creation; patches fail with `cell.enabled is immutable`. A `cell` block without `enabled: true` is not a cell.
+`spec.cell.enabled` cannot change after creation; patches fail with `cell.enabled is immutable`.
 
 A cell has no ingress host. Tenants use the
 [tenant webhook door](webhooks.md).
@@ -19,7 +19,7 @@ Six limitations apply:
 - Every branch source on a cell sees each webhook; only the job whose SCM matches reacts.
 - A rehydrated run shows no stage view, culprits, or test detail.
 - The role-strategy screen shows an unknown service identity until the first build.
-- An ad-hoc job from the UI or script console does not survive a pod roll. Only a job in
+- An ad-hoc job does not survive a pod roll. Only a job in
   the tenant's [`items.yaml`](../config/items.md) bundle does.
 
 ## Prerequisites
@@ -83,7 +83,7 @@ spec:
 `pipelines.agentNamespace` must be one of `spec.namespaces`, and Varroa must manage it.
 A `pipelines` block requires `profile` and `agentNamespace`.
 `pipelines.profile` must name an existing `JenkinsVersionProfile`. An unset
-`pipelines.composedBundleRef` places the tenant with an empty folder. An unset
+`pipelines.composedBundleRef` places the tenant with an empty folder. An `items: []` item also places an empty folder. An unset
 `pipelines.cellPool` resolves to the profile's own pool. For a dedicated cell, name a
 pool whose `maxTenantsPerCell` is 1.
 
@@ -100,7 +100,7 @@ Expect `"status":"True","reason":"TenantPlaced"`.
 - **Folder.** The tenant's `items.yaml` goes under one top-level folder named for the `Team`.
   The operator ignores `plugins.yaml`, `rbac.yaml`, and `jenkins.yaml` except its
   [pod templates](tenant-pod-templates.md). A job that the bundle drops leaves the
-  folder; its next trigger fails with `JOB_NOT_FOUND`. See
+  folder; its next trigger fails with `JOB_NOT_FOUND`. An empty `items` list drops every job in the folder. See
   [Build records](build-records.md).
 - **Held folder.** Tenant items resolve only their own variables. The operator
   keeps the folder and jobs on these faults:
@@ -112,8 +112,8 @@ Expect `"status":"True","reason":"TenantPlaced"`.
   - the bundle is missing or not built.
 
   The `Team` reports `TenantWarnings=True`, reason `ItemsHeld`. A new held tenant has no
-  folder until fixed. Held folders show no job.
-- **Tenant warnings.** `TenantWarnings` folds all member cells; several-cell lines name cells.
+  folder until fixed. A folder held on any member cell shows no job.
+- **Tenant warnings.** `TenantWarnings` folds all member cells; several-cell lines name cells. When Jenkins refuses a tenant item, the Team reports `TenantWarnings=True` with the reason `ItemsApplyFailed`. The message names the item and the Jenkins error. The next successful items apply clears it.
 - **Item role.** The operator grants the service identity build, read, and replay permissions
   on the folder's subtree.
 - **Service identity.** Builds in the folder run as `svc-<team>`, a synthesized identity
@@ -277,8 +277,7 @@ keeping `currentBuild.previousBuild` and the build-number sequence correct.
 Each seed carries the job's next build number, its newest successful build, and up to
 `rehydrateBuilds` further builds, newest first, with parameters and changesets. A multibranch
 child seeds only after branch indexing creates it; the operator retries until then or until
-`rehydrateDeadline` passes. The mite seeds a job that the same push creates after the items
-apply, so a roll needs no second push. The mite drops the records of a job that the catalog deleted.
+`rehydrateDeadline` passes. The mite seeds a job that the same push creates, so a roll needs no second push. The mite drops the records of a deleted job.
 
 `Team.spec.pipelines` settings for rehydration and the ledger:
 
@@ -299,7 +298,7 @@ apply, so a roll needs no second push. The mite drops the records of a job that 
 | `TenantRehydrated` | True | Every selected seed reached the cell. | None. |
 | `RehydrationPending` | False | A bundle is outstanding, or a job is deferred. Only deferred jobs and jobs with no number seed wait. Above 256 such jobs for a tenant, or past a cell-wide size limit, the largest tenants wait whole. | Wait; the operator resends after a result or a timeout. |
 | `RehydrationTruncated` | False | Seeds exceed one bundle. Only jobs with no build number wait. Above 256 such jobs, the whole tenant waits. | Wait; number-only bundles cover every job before full records resume. |
-| `RehydrationFailed` | False | The mite rejected the bundle, or `rehydrateDeadline` passed. Past the deadline, the deferred jobs build with no seeded history. | Read the message. A bundle that never applied needs a fresh generation: move the tenant or roll the cell. |
+| `RehydrationFailed` | False | The mite rejected the bundle, could not reload a job, or `rehydrateDeadline` passed. Past the deadline, the deferred jobs build with no seeded history. | Read the message. A bundle that never applied needs a fresh generation: move the tenant or roll the cell. |
 
 A build can still wait on the claim reason `NOT_READY` while `Rehydrated` is `True`; the
 claimer retries. The operator applies a rehydration result and announces the seed within

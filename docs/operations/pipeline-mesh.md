@@ -60,3 +60,7 @@ terminal for more than an hour, so a stopped recorder leaves nothing.
 Varroa stores each state file under its own push: the Jenkins process and its push count. A resume
 reads the push the recorder recorded. A late push cannot overwrite a newer one, whichever gateway
 pod writes it.
+
+The plugin keeps each file until the gateway stores it and records it. A failed record holds the file, and the plugin sends it again.
+
+When the gateway cannot find the tenant of a run, it answers busy with the reason `tenant-unresolved`, and the plugin sends the file again after the pause. After 60 seconds it refuses the run as `foreign-run`. A mite reconnect to the same gateway replica keeps that replica's clock while the clock is retained. Gateway replicas do not share clocks, so another replica may start a new clock. The run then stops replicating its state, and a later resume takes the ordinary path. The same rule applies to the restart copy.

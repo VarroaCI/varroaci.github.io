@@ -18,6 +18,8 @@ A `CatalogSource` turns reusable Git or OCI content into read-only
 `groovy` items cannot enter a `ComposedBundle`. Their controls are documented
 in [executeGroovy security](../security/execute-groovy.md).
 
+An `item` item can hold an empty list, `items: []`. It adds no job.
+
 On a cell, the `podtemplate` items of a tenant bundle go on the tenant's own
 cloud, with the tenant's name, namespace, service account, and label written on
 each template. See [Tenant pod templates](../operations/tenant-pod-templates.md).
@@ -77,8 +79,10 @@ spec:
   syncIntervalSeconds: 300
 ```
 
+`status.observedRevision` holds the commit SHA. An annotated tag resolves to its commit.
+
 `syncIntervalSeconds` defaults to 300. A set value must be between 30 and 31536000 (one year); 0 or an omitted field means the default. The API, the MCP tools, and kubectl all reject any other value. Private Git uses
-a same-namespace `secretRef`; see [bundle source authentication](bundle-sources.md#reference-git).
+a same-namespace `secretRef`; see [bundle source authentication](bundle-sources.md#reference-git). The catalog copies files the same way as a bundle source; see [Reference Git](bundle-sources.md#reference-git) for `.gitattributes` handling.
 
 ## Publish from OCI
 

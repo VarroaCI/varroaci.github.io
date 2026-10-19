@@ -36,7 +36,7 @@ export const THRESHOLDS = {
 };
 
 export const WORD_LIMITS = {
-  page: 1800,
+  page: 2200,
   corpus: 60000,
 };
 

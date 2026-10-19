@@ -1,0 +1,184 @@
+---
+import ogImage from "../assets/og-image.png";
+// src/pages/agents.astro: the agents brochure page. The client snippets come
+// from the "Configure a client" section of docs/agents/connecting.md, so the
+// handbook stays the single source. Copy comes from scripts/agents-page.mjs.
+import "../styles/tokens.css";
+import SiteBackdrop from "../components/SiteBackdrop.astro";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import Analytics from "../components/Analytics.astro";
+import { snippetsFrom } from "../../scripts/client-snippets.mjs";
+import { AGENTS_PAGE } from "../../scripts/agents-page.mjs";
+import connectingMarkdown from "../../../docs/agents/connecting.md?raw";
+
+const { title, description } = AGENTS_PAGE;
+const snippets = snippetsFrom(connectingMarkdown);
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Varroa" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={new URL("/agents", Astro.site).href} />
+    <meta property="og:image" content={new URL(ogImage.src, Astro.site).href} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={new URL(ogImage.src, Astro.site).href} />
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("starlight-theme");
+          var theme = stored || "dark";
+          document.documentElement.dataset.theme = theme;
+          if (!stored) localStorage.setItem("starlight-theme", "dark");
+        } catch (e) {
+          // Storage inaccessible. The dark default set on <html> above holds.
+        }
+      })();
+    </script>
+    <Analytics />
+  </head>
+  <body class="varroa-brochure">
+    <SiteBackdrop />
+    <SiteHeader />
+
+    <main class="varroa-shell varroa-agents">
+      <h1>{title}</h1>
+      <p class="varroa-agents__intro">
+        An agent in Varroa acts as a person. It never acts as an administrator token.
+      </p>
+
+      <section class="varroa-agents__section" id="connect" aria-labelledby="connect-heading">
+        <h2 id="connect-heading">Connect your agent</h2>
+        <p>
+          Point any MCP client at <code class="varroa-mono">https://&lt;dashboard-host&gt;/api/v1/mcp</code>. Each person creates an
+          API key, and the agent acts with that person's permissions.
+        </p>
+
+        <div class="varroa-snippets" role="group" aria-label="MCP client configuration">
+          {snippets.map((s, i) => (
+            <>
+              <input class="varroa-snippets__radio" type="radio" name="client-snippet" id={`snippet-${i}`} checked={i === 0} />
+              <label class="varroa-snippets__label" for={`snippet-${i}`}>{s.label}</label>
+            </>
+          ))}
+          {snippets.map((s, i) => (
+            <pre class="varroa-snippets__panel" data-panel={String(i)}><code>{s.code}</code></pre>
+          ))}
+        </div>
+
+        <a class="varroa-link" href="/docs/agents/connecting/">Connect a client</a>
+      </section>
+
+      <section class="varroa-agents__section" id="assistant" aria-labelledby="assistant-heading">
+        <h2 id="assistant-heading">The built-in assistant</h2>
+        <p>Bring your own key. The dashboard holds it for your login only.</p>
+        <p>
+          Point the assistant at an OpenAI-compatible endpoint or the Anthropic API, so a self-hosted model works.
+        </p>
+        <p>
+          It sees what you may see, bounded by the data level your team sets. It records every step. Every write waits for
+          your approval.
+        </p>
+        <a class="varroa-link" href="/docs/agents/assistant/">The assistant</a>
+      </section>
+
+      {/* The Team agents block follows here (A3). */}
+    </main>
+
+    <SiteFooter />
+  </body>
+</html>
+
+<style>
+  .varroa-agents {
+    padding-block: 3rem 4rem;
+  }
+
+  .varroa-agents h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  }
+
+  .varroa-agents__intro {
+    max-width: 42rem;
+    color: var(--varroa-text-dim);
+    margin: 0 0 2rem;
+  }
+
+  .varroa-agents__section {
+    max-width: 46rem;
+    margin-top: 2.5rem;
+  }
+
+  .varroa-agents__section h2 {
+    margin: 0 0 0.75rem;
+  }
+
+  .varroa-agents__section p {
+    color: var(--varroa-text-dim);
+  }
+
+  .varroa-snippets {
+    position: relative;
+    margin: 1.25rem 0;
+  }
+
+  .varroa-snippets__radio {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+  }
+
+  .varroa-snippets__label {
+    display: inline-block;
+    border: 1px solid var(--varroa-border);
+    border-bottom: none;
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding: 0.4rem 0.9rem;
+    margin-right: 0.25rem;
+    color: var(--varroa-text-dim);
+    cursor: pointer;
+  }
+
+  .varroa-snippets__radio:focus-visible + .varroa-snippets__label {
+    outline: 2px solid var(--varroa-accent);
+  }
+
+  #snippet-0:checked + .varroa-snippets__label,
+  #snippet-1:checked + .varroa-snippets__label,
+  #snippet-2:checked + .varroa-snippets__label {
+    color: var(--varroa-text);
+    background: var(--varroa-bg-inset);
+  }
+
+  .varroa-snippets__panel {
+    display: none;
+    overflow-x: auto;
+    background: var(--varroa-bg-inset);
+    border: 1px solid var(--varroa-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+  }
+
+  #snippet-0:checked ~ .varroa-snippets__panel[data-panel="0"],
+  #snippet-1:checked ~ .varroa-snippets__panel[data-panel="1"],
+  #snippet-2:checked ~ .varroa-snippets__panel[data-panel="2"] {
+    display: block;
+  }
+</style>

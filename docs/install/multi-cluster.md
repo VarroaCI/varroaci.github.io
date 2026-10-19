@@ -13,7 +13,11 @@ helm upgrade --install varroa charts/varroa \
   --set nats.external.serviceType=LoadBalancer
 ```
 
-Protect the endpoint with firewall rules and NATS credentials. If network policies are enabled, permit member-cluster egress to this endpoint.
+Protect the endpoint with firewall rules and NATS credentials. If network policies are enabled, a member must set `networkPolicy.coreNatsEgress.cidrs` to this endpoint's address. The render fails without it.
+
+On the core, with network policies enabled, set `nats.external.allowedCIDRs` to the source addresses of each member. The render fails while the list is empty. A member address behind a NodePort or LoadBalancer can change. See [Network Policies](network-policies.md#external-nats-clients).
+
+With `nats.external.externalTrafficPolicy: Local`, each node sends NATS traffic only to a NATS pod on that node. A load balancer checks each node and skips a node without a NATS pod. A NodePort drops the connection on a node without a NATS pod. For a NodePort, set the member `bus.url` to a comma-separated list of node addresses that run NATS pods. Add each address to `nats.external.ipSANs` on the core and to `networkPolicy.coreNatsEgress.cidrs` on the member. Pin the NATS pods to those nodes with `nats.podTemplate.merge.spec.nodeSelector`.
 
 ## Install the member
 
@@ -42,7 +46,8 @@ A member that hosts [cells](../operations/cells.md) must also write to the core 
 | `recordStore.blobs.s3.url` | The core bucket URL, with an `endpoint` that the member can reach |
 | `recordStore.blobs.s3.existingSecret` | The Secret that holds the object store credential |
 | `recordStore.blobs.s3.artifactSecret` or `artifactSTS` | The member's [artifact credentials](../operations/artifact-credentials.md) |
-| `networkPolicy.recordStoreBlobEgress` | The object store address and port, when network policies are enabled |
+| `networkPolicy.coreNatsEgress.cidrs` | **Required** when network policies are enabled: the core NATS endpoint address |
+| `networkPolicy.recordStoreBlobEgress.cidrs` | **Required** when network policies are enabled: the object store address. The port comes from `ports` |
 
 The hive render adds the blob settings to the gateway and the operator. It renders no recorder, no CloudNativePG cluster, and no retention settings. The core keeps the retention rules for every cluster.
 
@@ -63,7 +68,16 @@ helm upgrade varroa charts/varroa -n varroa-system -f values.yaml \
   --set 'recordStore.postgres.memberEndpoint.allowedCIDRs={203.0.113.0/24}'
 ```
 
-The endpoint Service selects the CloudNativePG primary on port 5432. Put the core `varroa-recordstore-gateway` DSN into the member Secret named by `recordStore.postgres.external.existingSecret`, with the host replaced by the endpoint address. With network policies enabled, set `networkPolicy.recordStorePostgresEgress.cidrs` on the member. The core then requires `recordStore.postgres.memberEndpoint.allowedCIDRs`. A NodePort or load-balancer path can rewrite the source address, so list the addresses the traffic arrives from. Set `0.0.0.0/0` only when the endpoint is not reachable from outside your network.
+The endpoint Service selects the CloudNativePG primary on port 5432. Put the core `varroa-recordstore-gateway` DSN into the member Secret named by `recordStore.postgres.external.existingSecret`, with the host replaced by the endpoint address. With network policies enabled, set `networkPolicy.recordStorePostgresEgress.cidrs` on the member. The core then requires `recordStore.postgres.memberEndpoint.allowedCIDRs`. With `externalTrafficPolicy: Cluster`, kube-proxy replaces the member source address with a core node address. Then `allowedCIDRs` must include the core node range and the pod range.
+Set `recordStore.postgres.memberEndpoint.externalTrafficPolicy: Local` to keep the member source address. Then list only the member egress addresses.
+Set `0.0.0.0/0` only when the endpoint is not reachable from outside your network.
+
+With `Local`, only the node that runs the CloudNativePG primary answers.
+A load balancer health check sends traffic only to that node.
+A NodePort answers only on that node address. Set the member DSN host to that address, and the DSN port to the NodePort (`30543` in the example above).
+With `cnpg.instances: 1`, the address changes only when the pod moves to another node.
+With more instances, a failover moves the primary to another node. A NodePort DSN must then list every node that can host an instance.
+libpq accepts a comma-separated host list with `target_session_attrs=read-write`. Add each node address to `networkPolicy.recordStorePostgresEgress.cidrs` on the member.
 
 ### Pipelines tenant on a member
 

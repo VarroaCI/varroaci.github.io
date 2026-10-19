@@ -62,6 +62,9 @@ spec:
 
 The URL must use HTTPS, SSH, or scp-style `git@host:path`. Pin a tag or commit
 so content changes only with a spec change.
+For an annotated tag named by `revision`, `status.observedRevisions` records the commit that the tag points to. A 40-character SHA is recorded as given, even when it names a tag object.
+
+The operator and `varroactl export` copy the files of the commit with `git archive`. They do not keep a `.git` directory. Files that `.gitattributes` marks `export-ignore` are not copied. `export-subst` placeholders are expanded. This applies with and without the Git cache.
 
 For private HTTPS Git, set `secretRef` to a same-namespace Secret with
 `username`, `password`, and an allowed-hosts annotation:
@@ -92,6 +95,35 @@ spec:
 `.dockerconfigjson` or `username` and `password`. A `.dockerconfigjson` secret
 must contain exactly one registry entry; a secret with more than one `auths`
 entry is rejected.
+
+`path` selects one bundle in a hand-built artifact whose root holds more than one bundle.
+
+## Export a Git bundle to OCI
+
+Use `varroactl export bundle` to publish one Git bundle as an OCI artifact:
+
+```bash
+varroactl export bundle --repo https://github.com/example/bundles.git \
+  --path bundles/team-platform --revision main \
+  --to oci://registry.example.com/bundles/team-platform:v1
+```
+
+`--to` accepts `oci://`, `dir://`, and `tar://`. The command refuses `uc://`, because the update center serves plugin packs only.
+
+The artifact root is the bundle directory. Import it with `ref` only:
+
+```yaml
+spec:
+  inputs:
+    - ociSource:
+        ref: registry.example.com/bundles/team-platform:v1
+```
+
+- An `oci://` destination with an explicit `:tag` uses that tag.
+- A `dir://` or `tar://` destination uses the tag `<repo>-<path>`, for example
+  `github.com-example-bundles-bundles-team-platform`.
+- The paths `a-b` and `a/b` produce the same derived tag. Use an explicit tag in that case.
+- The manifest records the source URL without credentials, the commit SHA, and the bundle path.
 
 ## Size the Git cache
 

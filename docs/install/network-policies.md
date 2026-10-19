@@ -39,7 +39,7 @@ On a [member cluster](multi-cluster.md#record-store), the gateway policy carries
 Point it at the core object store address. In `postgres` blob mode the member gateway also needs
 `networkPolicy.recordStorePostgresEgress.cidrs`, pinned to the core member endpoint. The core
 database policy admits that traffic from `recordStore.postgres.memberEndpoint.allowedCIDRs`, a
-required list when network policies are enabled.
+required list when network policies are enabled. With `externalTrafficPolicy: Cluster`, the list must hold the core node and pod ranges. See the [multi-cluster page](multi-cluster.md#record-store).
 
 An agent uploads build artifacts straight to the object store, not through the controller pod.
 This chart does not isolate controller or agent namespaces. An agent namespace that egresses
@@ -78,23 +78,85 @@ An empty `tenantNamespaceSelector` permits every namespace to reach the gateway.
 
 ## Restrict External Egress
 
-Git egress defaults to ports 443 and 22 for any destination. OCI and update-center rules default to HTTPS for any IPv4 address. Narrow them to known registry or proxy CIDRs:
+Each egress group renders a rule only when its gate is on and its `cidrs` list is not empty. A gate that is on with an empty list fails the render. The failure message names the value to set.
+
+Every group except `coreNatsEgress` also requires a non-empty `ports` list. An empty `ports` list fails the render, because Kubernetes reads it as every port.
+
+| Group | Default | Renders when | Empty `cidrs` |
+| --- | --- | --- | --- |
+| `apiServerEgress` | `["0.0.0.0/0"]` on 443 and 6443 | Always | Fails the render. |
+| `gitEgress` | `["0.0.0.0/0"]` on 443 and 22 | `enabled` is true | Fails the render while enabled. |
+| `dexConnectorEgress` | `["0.0.0.0/0"]` on 443 | Dex is on and `enabled` is true | Fails the render while enabled. |
+| `telemetryEgress` | `[]` on 4317 and 4318 | `telemetry.endpoint` is set | Fails the render while the endpoint is set. |
+| `pullThroughEgress` | `["0.0.0.0/0"]` on 443 | `updateCenter.pullThrough.enabled` is true | Fails the render while pull-through is on. |
+| `updateCenterRegistryEgress` | `[]` on 443 | `updateCenter.storage.type` is `oci` | Fails the render. |
+| `ociRegistryEgress` | Off, `[]` on 443 | `enabled` is true | Fails the render. |
+| `coreNatsEgress` | `[]` | Hive mode | Fails the render in hive mode. |
+| `recordStoreBlobEgress` | On, `[]` on 443 | `recordStore.blobs.mode` is `s3` | Fails the render. |
+| `recorderWebhookEgress` | Off, `[]` on 443 | `enabled` is true | Fails the render. |
+| `assistantEgress` | `[]` on 443 | `assistant.enabled` is true | Fails the render when `cidrs` is empty. |
+| `recordStorePostgresEgress` | On, `[]` on 5432 | `recordStore.enabled` is true | In `cnpg` mode, selects the CloudNativePG pods. In `external` mode, fails the render. |
+
+The defaults of `apiServerEgress`, `gitEgress`, `dexConnectorEgress`, and `pullThroughEgress` allow every address on 443. Pin each one to the addresses that it reaches.
+
+- `apiServerEgress`: pin each endpoint IP as a `/32` on port 6443. Get the IPs with `kubectl get endpointslice -n default -l kubernetes.io/service-name=kubernetes`. Calico matches the endpoint address, not the ClusterIP.
+- `gitEgress`: pin the Git server and the non-Dex OIDC issuer.
+- `dexConnectorEgress`: pin the identity provider addresses.
+- `pullThroughEgress`: the upstream hosts are public CDN hosts. Pin the CIDRs of your mirror, or keep `["0.0.0.0/0"]`.
+
+Egress rules add up. A connection is allowed when any rule allows it. The egress set closes only when you pin `apiServerEgress`, `gitEgress`, and `dexConnectorEgress`. While any of these keeps its default, the operator, BFF, and gateway reach any address on port 443.
+
+Pin the groups that you control:
 
 ```yaml
 networkPolicy:
+  apiServerEgress:
+    cidrs: ["10.0.0.2/32"]
+    ports: [443, 6443]
+  gitEgress:
+    cidrs: ["10.0.1.0/24"]
+    ports: [443, 22]
+  dexConnectorEgress:
+    cidrs: ["10.0.2.0/24"]
+    ports: [443]
   ociRegistryEgress:
     enabled: true
     cidrs: ["10.20.0.0/16"]
     ports: [443]
-  pullThroughEgress:
-    enabled: false
   updateCenterRegistryEgress:
-    enabled: true
     cidrs: ["10.20.0.0/16"]
+    ports: [443]
+  recordStoreBlobEgress:
+    cidrs: ["203.0.113.10/32"]   # s3 blob mode only
     ports: [443]
 ```
 
-Kubernetes NetworkPolicy matches IP addresses, not DNS names. Include every address returned by load-balanced endpoints. Update-center pull-through can contact both the configured update service and its checksum archive. Allow both or disable the archive fallback and pre-seed every required plugin.
+Kubernetes NetworkPolicy matches IP addresses, not DNS names. Include every address that a load-balanced endpoint returns. Update-center pull-through can contact the configured update service and its checksum archive at `repo.jenkins-ci.org`. The default pull-through rule allows both hosts.
+
+### Empty Port Lists
+
+Every group in the table except `coreNatsEgress` refuses `ports: []` while it is on. Set the TCP ports that the group needs.
+
+### External NATS Clients
+
+`nats.external.allowedCIDRs` is required when `networkPolicy.enabled` is true, full mode is active, and `nats.external.enabled` is true. An empty list fails the render. Set the member cluster source addresses. To admit every source, set `["0.0.0.0/0"]`.
+
+Behind a NodePort or a LoadBalancer with `externalTrafficPolicy: Cluster`, kube-proxy in iptables or IPVS mode replaces the source address with a core node address. The allow-list must then include the core node range and pod range. Set `nats.external.externalTrafficPolicy: Local` to keep the member source address. Then list only the member egress addresses. The chart does not compute a default list, because it cannot know the member addresses.
+
+### Upgrade Impact
+
+With `networkPolicy.enabled: true`, an upgrade fails the render until you set the values below. No failure is silent.
+
+1. `apiServerEgress`, `gitEgress`, or `dexConnectorEgress` with an empty `cidrs` list: set the addresses, or set `["0.0.0.0/0"]` to keep the wide default.
+2. Any group in the table with an empty `ports` list: set the TCP ports.
+3. `telemetry.endpoint` is set: set `networkPolicy.telemetryEgress.cidrs` to the collector address.
+4. `nats.external.enabled` in full mode: set `nats.external.allowedCIDRs`.
+5. `networkPolicy.dexConnectorEgress.extraCIDRs` is removed. Move its entries to `networkPolicy.dexConnectorEgress.cidrs`.
+6. Update center with `updateCenter.storage.type: oci`: set `networkPolicy.updateCenterRegistryEgress.cidrs`.
+7. Hive mode: set `networkPolicy.coreNatsEgress.cidrs`.
+8. Record store with `recordStore.blobs.mode: s3`: set `networkPolicy.recordStoreBlobEgress.cidrs`.
+9. `networkPolicy.recorderWebhookEgress.enabled: true`: set `cidrs`, or set `["0.0.0.0/0"]` to allow every address.
+10. `pullThroughEgress`: no change.
 
 ## Isolate Cells
 

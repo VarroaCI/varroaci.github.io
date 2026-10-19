@@ -59,15 +59,17 @@ Commands use `kubectl` and `helm`. Replace values in `<angle-brackets>` before r
 - [Runner tokens](security/runner-tokens.md)
 - [executeGroovy controls](security/execute-groovy.md)
 - [Headless controllers](security/headless-controllers.md)
+- [Outbound connections](security/outbound-connections.md)
 
-## AI and agents
+## Agents
 
-- [Agentic fleet operations](agents/overview.md)
+- [Agents overview](agents/overview.md)
 - [Connect a client](agents/connecting.md)
-- [Tool conventions](agents/tools.md)
-- [Write through MCP](agents/writing.md)
+- [Assistant](agents/assistant.md)
 - [Identity and auditing](agents/identity.md)
 - [Jenkins controller tools](agents/jenkins-tools.md)
+- [Tool reference](agents/tools.md)
+- [Write through MCP](agents/writing.md)
 
 ## Operations
 
