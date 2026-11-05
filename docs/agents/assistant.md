@@ -90,11 +90,19 @@ controller in view. The assistant reads that context when you start a
 conversation. A follow-up message keeps the first context. Open a new
 conversation to change it.
 
+When a conversation cannot take another message, the drawer shows **Start a new conversation**. Select it, then select **Send**. Your message goes to a new conversation for this page.
+
+When the assistant is off for your account, the drawer shows a link to your assistant settings. When too many sessions run, the drawer shows a busy message and opens the session list.
+
 Select **Sessions** to see your recent conversations. Each row shows your first message, the context, the state, and the age. On a phone, the drawer opens full screen.
+
+The drawer footer shows the session state and its prompt and completion token counts. When the provider reports no usage, Varroa estimates the counts and marks them as estimated. A skipped session also shows why it did not run. While a session runs, the footer shows **Stop**. Select it to cancel the session.
+
+Select **Close** to close the drawer. Press Escape while focus is inside the drawer to close it too. Focus then returns to the control that opened the drawer. When that control is gone, focus moves to the top-bar button. When you close the drawer with the top-bar button, focus stays on that button.
 
 On a screen 1024 px or wider, drag the left edge of the drawer to change its width. You can also focus the edge and use the arrow keys. Home and End set the smallest and the largest width. The browser keeps the width for your next visit.
 
-Your message shows in the transcript at once. A status line under it shows what the assistant does now. It thinks, it runs a named tool, or it waits for your approval. The answer text then appears at a steady rate. A conversation that you open again shows all of its text at once. When your system asks for reduced motion, the text and the status line do not move.
+Your message shows in the transcript at once. Focus moves to the message box. A status line under it shows what the assistant does now. It thinks, it runs a named tool, or it waits for your approval. The answer text then appears at a steady rate. A conversation that you open again shows all of its text at once. When your system asks for reduced motion, the text and the status line do not move.
 
 The assistant writes Markdown. Tables, task lists, and strikethrough also show. A wide table scrolls inside the drawer.
 

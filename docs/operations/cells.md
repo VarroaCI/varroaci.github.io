@@ -241,16 +241,19 @@ changes.
 writes the new placement first, then both cells' tenant lists. A claim carrying an older
 generation is refused, so a lost cell never grants a build after the move.
 
-A voluntary move (a rebalance, a profile change, or a pool change) waits. The reconciler drops the
-tenant's folder from every member cell first (`Placed=False`, reason `TenantMoving`). It waits
+A voluntary move (a rebalance, a profile change, or a pool change) waits. It starts only when a ready cell of the new profile or pool has a free tenant slot. Until then, the tenant keeps building on its old cells and reports `MembersStale`. The reconciler then drops the
+tenant's folder from every member cell (`Placed=False`, reason `TenantMoving`). It waits
 until slot 0's old cell and each member cell on the old profile or pool confirm the folder is
-idle. It then does the same two-step move. [Tenant Slots](tenant-slots.md#a-profile-or-pool-change-moves-every-member)
+idle. It then does the same two-step move. When no such cell is left at that point, the tenant returns to `MembersStale` and the old cells get the folder back. [Tenant Slots](tenant-slots.md#a-profile-or-pool-change-moves-every-member)
 describes how the other members move.
 
 **Roll.** A cell that reports `CellReady=False` past `cells.unreadyGracePeriod`, for a reason
 other than the three configuration gates, gets its pod deleted once and the reason `CellRolled`.
 The roll waits up to 30 minutes from the pod start while an init container runs without a
-restart. The grace counts from the init finish. A pod that has not started Jenkins gets a
+restart. It also waits while kubelet pulls the image of the first init container. The pull
+runs from the `Pulling` event of that container until its `Pulled` event. The `CellReady`
+message then names the image. The grace
+counts from the init finish. A pod that has not started Jenkins gets a
 30-second delete grace.
 
 **Teardown** frees the placement record and the name at once.
@@ -267,6 +270,8 @@ Every `Placed` reason on a `Tenant`:
 |---|---|---|---|
 | `TenantPlaced` | True | The tenant is bound to a cell and ready. | None. |
 | `TenantMoved` | True | An involuntary move landed on a new cell. | None. The old cell's schedule purge retries in the background. |
+| `MembersApplied` | True | Every slot and standby holds a cell, and every member's cell reports the tenant applied. | None. |
+| `MembersStale` | True | Every slot and standby holds a cell, and one member is stale. The tenant still builds. | Wait for a free cell in the pool, or raise the pool's `maxCells`. See [a profile or pool change](tenant-slots.md#a-profile-or-pool-change-moves-every-member). |
 | `RecordStoreUnsupported` | False | `recordStore.enabled` is false. | Enable the record store. |
 | `BlobTierUnsupported` | False | `recordStore.blobs.mode` is not `s3`. | Set the blob tier to `s3`. |
 | `ProfileNotFound` | False | `spec.pipelines.profile` names no `JenkinsVersionProfile`. | Create the profile, or fix the name. |
@@ -274,6 +279,8 @@ Every `Placed` reason on a `Tenant`:
 | `AgentNamespaceUnmanaged` | False | `agentNamespace` is missing from `spec.namespaces`, or Varroa does not manage it. | Add it to `spec.namespaces` as a managed namespace. |
 | `AwaitingCell` | False | No cell of the tenant's pool is enabled, ready, not evacuating, and under its resolved capacity. | Wait for the pool to create a cell, or raise its `warm` or `maxTenantsPerCell`. |
 | `CellCapReached` | False | The tenant's pool sits at its `maxCells` and no cell is free. | Raise `maxCells`, or move the tenant to another pool. |
+| `SlotPending` | False | At least one active slot holds no cell. | Raise the pool's `maxCells`. |
+| `StandbyPending` | False | Every active slot holds a cell, and at least one standby does not. | Raise the pool's `maxCells`. |
 | `TenantMoving` | False | A voluntary move is waiting for the old cell to finish draining the tenant's folder. | Wait. Check `status.pendingItemDeletions` for a stuck delete on the old cell. |
 | `CellNotReady` | False | The tenant stays on its cell, which reports `CellReady=False` without an `evacuate` signal. | Diagnose the cell's own `CellReady` reason below. |
 | `AgentServiceFailed` | False | An agent Service write or delete failed. The placement is kept. | See [Agent Services](agents.md). |

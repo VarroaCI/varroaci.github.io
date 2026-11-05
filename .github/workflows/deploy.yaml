@@ -6,6 +6,7 @@ on:
     paths:
       - 'site/**'
       - 'docs/**'
+      - 'examples/controller-class.yaml'
       - '.github/workflows/deploy.yaml'
   workflow_dispatch:
 
