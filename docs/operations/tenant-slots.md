@@ -5,7 +5,7 @@ A pipelines tenant can run on several cells. Each such cell is a **member**. Rea
 
 ## Slots and standbys
 
-`Team.spec.pipelines.members` is the tenant's active slot count, not `Team.spec.members`, which
+`Tenant.spec.pipelines.members` is the tenant's active slot count, not `Tenant.spec.members`, which
 lists local usernames.
 
 ```yaml
@@ -17,7 +17,7 @@ spec:
     standby: 1      # warm members, 0 to 8, default 0
 ```
 
-The Team form edits both counts: **Active slots** sets `members` and **Standby members** sets `standby`.
+The Tenant form edits both counts: **Active slots** sets `members` and **Standby members** sets `standby`.
 
 An **active** member holds one slot index, dense from `0` to `members - 1`. A **standby** holds
 the tenant folder, no slot, and runs no build.
@@ -33,7 +33,7 @@ and one whose members all report applied reports `MembersApplied`.
 Read the members:
 
 ```bash
-kubectl get team payments -o jsonpath='{.status.placement.members}'
+kubectl get tenant payments -o jsonpath='{.status.placement.members}'
 ```
 
 ## Every job has one home slot
@@ -70,11 +70,32 @@ with the newest applied time, ties broken by name.
 
 The promoted cell already holds the tenant folder and its history, so the slot stays warm. It
 keeps its slot index and job set, so no job's home changes. The agent Service
-`varroa-agents-<team>-<slot>` keeps its name, and its selector moves to the promoted cell. The
+`varroa-agents-<tenant>-<slot>` keeps its name, and its selector moves to the promoted cell. The
 old holder's agent pods go as [Agent pod lifetime](tenant-pod-templates.md#agent-pod-lifetime) states.
 
 Every other slot keeps building. A claim carrying the generation from before the promotion
 answers `NOT_READY`, a retry and never a cancel.
+
+## A profile or pool change moves every member
+
+A change to `spec.pipelines.profile` or `spec.pipelines.cellPool` moves every member to a cell
+of the new pool.
+
+1. Slot 0 moves through the voluntary move in [Placement lifecycle](cells.md#placement-lifecycle).
+   While it waits, every member drops the tenant folder. A running build continues, and no new
+   build starts on any member.
+2. The move also waits until each member cell on the old profile or pool is idle.
+3. Each other slot and each standby then takes a ready cell of the new pool. When the pool has
+   no such cell yet, the member stays on its old cell and continues to build. It moves on a
+   later tick. After the move completes, a member with no replacement stays on its old cell and
+   builds there again.
+
+A standby on an old cell never takes a slot. Each tick that moves a member raises the tenant
+generation once. A claim that carries the older generation answers `NOT_READY`, a retry and
+never a cancel.
+
+The pool creates the cells that the move needs. A pool at its `maxCells` leaves the remaining
+members on their old cells, and they keep building there. Raise `maxCells` to complete the move.
 
 ## Build state across slots
 
@@ -98,9 +119,8 @@ A cell has no executors. By default, each build runs on a new agent pod. Each bu
 empty workspace, also on one slot. `ws`, `dir`, and `customWorkspace` select a path in that pod.
 Check out the source in each build. Keep caches in an external store.
 
-A pod template with `idleMinutes` can keep a pod for a later build on the same cell. A restart of
-the cell ends that pod. A move ends it too. An idle pod keeps a workspace only on an uninterrupted
-cell.
+A pod template with `idleMinutes` can keep a pod for a later build on the same cell. A restart or move
+ends that pod. An idle pod keeps a workspace only on an uninterrupted cell.
 
 A resume does not keep a running `node` block today. The resumed build waits five minutes for its
 agent, then ends `ABORTED`. Rerun the build.

@@ -141,8 +141,8 @@ Counters: `varroa.gateway.trigger_accepted`, `recorder_ingest_trigger_accepted_t
 The recorder publishes one notification per run change onto the NATS subject
 `runs.<cluster>.<tenant>`.
 
-The BFF serves one stream per team at `GET /pipelines/{team}/stream`, under the ticket scope
-`pipelines:{team}`, with `run` and `stage` events.
+The BFF serves one stream per tenant at `GET /pipelines/{tenant}/stream`, under the ticket scope
+`pipelines:{tenant}`, with `run` and `stage` events.
 
 A page treats a notification as a hint and refetches the record.
 
@@ -212,10 +212,30 @@ serves them in `cases`, failed cases first, and the report file in `report`.
 `retention.runs` controls the case rows. `retention.artifacts` controls the report. Without
 the report, `downloadable` is false.
 
-`GET /pipelines/{team}/jobs/{job}/tests/{case}` answers the recent outcomes of one case, newest
+`GET /pipelines/{tenant}/jobs/{job}/tests/{case}` answers the recent outcomes of one case, newest
 first. `{case}` is a `caseKey` value from the tests read, encoded for one path segment.
 The read answers 50 rows, and `limit` accepts at most 200. It covers the `retention.runs`
 window.
+
+## Coverage and warnings summaries
+
+The completion event carries at most 20 coverage reports and 20 warnings reports. The recorder
+stores one `run_coverage` row or one `run_warnings` row per report. The rows hold summary numbers
+only, not the report file. A run with no report has no row. A zero count is a real value. The new
+and fixed counts are present only when the warnings plugin found a reference build. `retention.runs`
+controls these rows, and a tenant retention window deletes them with the run.
+
+`GET /runs/{run}` and the `get_run` tool carry `quality`. It lists the run's coverage reports and
+warnings reports in report id order. The BFF computes `percent` as covered count times 100 over the
+total, rounded to one decimal. `percent` is absent when the total is zero.
+
+Each report carries `delta` against the newest earlier run of the same job with the same report id.
+`linePoints` and `branchPoints` are percentage-point differences. A report with no earlier run has
+no `delta`. The Varroa delta can differ from the plugin delta, because the plugin compares with a
+Jenkins reference build. `new` and `fixed` come from the plugin only.
+
+The job detail and `get_job_health` carry `qualityTrend` over the same runs as `trend`. A run with no
+row for a report has no point in that series.
 
 ## Job schedules
 
@@ -237,22 +257,24 @@ A row's `next_fire_times` keeps its passed occurrences from the last
 `max(3 × cronGrace, 2 × cronGrace + 10m) + 2m`, at most 16, so the backstop can judge a miss. A changed spec, time zone, or disabled state
 replaces the list.
 
-`job_schedule_cells` holds one watermark row per cell: the time of the newest accepted envelope.
+`job_schedule_cells` holds one watermark row per cell: the time the cell took its newest accepted set. A resent set keeps the time the cell took it.
 An occurrence that never fired under a watermark at most thirty minutes old is a missed fire. An older watermark means the cell has not reported, so its set is stale.
 
+The recorder refuses a set taken more than five minutes ahead of its own clock and keeps the watermark. It logs the cell and counts `recorder_job_inventory_ahead_total`. A set from a correct clock replaces a watermark that is already past that limit.
+
 A `truncated: true` set means the plugin's walk stopped early, at 5000 rows or 700 KiB, whichever
-came first. The recorder deletes no row, because a partial set would erase schedules the plugin missed.
+came first. The recorder deletes no row, because a partial set would erase schedules the plugin missed. The one exception is a row stamped more than five minutes ahead of the recorder clock, which the recorder always removes.
 
 ## Multibranch inventory
 
-`job_branch_projects` holds each multibranch job's branch inventory, up to ten minutes old.
+`job_branch_projects` holds each multibranch job's branch inventory, up to ten minutes old. The same five-minute limit applies to the branch inventory.
 
 ## Search
 
 `GET /search` and the MCP `search` tool add three record-backed kinds on top of the four
 Kubernetes-sourced kinds: `job`, `run`, and `activity`. Each kind is capped at five results.
 Matching is a Postgres full-text prefix match on the last search token, not a substring match:
-`serv` matches `team-a/service/main`, but no infix in a longer word. Without the record store
+`serv` matches `tenant-a/service/main`, but no infix in a longer word. Without the record store
 these three kinds are absent; the other four still answer.
 
 ## The ledger and intent keys
@@ -318,6 +340,22 @@ Both policies apply only when `networkPolicy.enabled` and `recordStore.enabled` 
 In `cnpg` mode the chart also renders a policy for the Postgres pods, admitting the recorder, the
 BFF, and the gateway on port 5432, and the CloudNativePG operator on port 8000 from the namespace
 `networkPolicy.recordStoreCNPGOperatorNamespaceSelector` names (default `cnpg-system`).
+
+## When the database is unreachable
+
+A connect to the record store is bounded. Each BFF read is bounded too.
+
+- A connect attempt stops after 5 seconds. A connection string that sets its own `connect_timeout` keeps that value.
+- Each read in the BFF stops after 15 seconds. Each assistant store call stops after 8 seconds. The gateway, the recorder, and the Tenant agent runner do not bound their calls after connect.
+- The BFF starts and stays ready while the database is down. Its startup schema check stops after 10 seconds.
+- The assistant stays on while the database is down. Its calls answer 503 with the code `record_store_unreachable` until the database returns. A BFF restart is not necessary.
+- The BFF keeps each schema check that passes for its life. A database restored to an older schema needs a BFF restart.
+- Pipelines reads answer 503 with the code `record_store_unreachable`. The page shows "Pipeline data is unreachable" with a Retry button. A 503 without that code means the store is off or its schema is too old. A read answers after one connect timeout. The page does not retry the read on its own.
+- The Cells page and the Cell tab mark each record count as not available and show Retry. A store that is off shows no Retry; enable `recordStore` instead.
+- The tenant home Locks card shows the same Retry state.
+- The recorder fails at startup and restarts until the database returns. A restart is the correct response.
+
+Build history returns when the database answers again. No operator action is needed for the BFF.
 
 ## Remove the database
 

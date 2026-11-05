@@ -12,7 +12,7 @@ import SiteFooter from "../components/SiteFooter.astro";
 import Analytics from "../components/Analytics.astro";
 
 const description =
-  "Varroa pricing: free under the AGPL at any scale, or a commercial license priced per team. Within a team, users, agents, controllers, and builds are unlimited.";
+  "Varroa pricing: free under the AGPL at any scale, or a commercial license priced per tenant. Within a tenant, users, agents, controllers, and builds are unlimited.";
 ---
 
 <html lang="en" data-theme="dark">
@@ -55,11 +55,11 @@ const description =
     <main class="varroa-shell varroa-pricing">
       <h1>Pricing</h1>
       <p class="varroa-pricing__lede">
-        You pay per team and nothing else. A team is the people who share
+        You pay per tenant and nothing else. A tenant is the people who share
         one Jenkins setup, on a classic controller, on pipelines, or on both.
-        Within a team, users, build agents, controllers, and builds are
-        unlimited on every tier. A classic controller that belongs to no team
-        counts as one team. There is no per-seat licensing.
+        Within a tenant, users, build agents, controllers, and builds are
+        unlimited on every tier. A classic controller that belongs to no tenant
+        counts as one tenant. There is no per-seat licensing.
       </p>
 
       <div class="varroa-pricing__tiers">
@@ -70,7 +70,7 @@ const description =
             Varroa under the <a
               href="https://github.com/VarroaCI/varroa-jenkins/blob/main/LICENSE"
               >AGPL-3.0</a
-            >. Every feature, unlimited teams, forever. Self-host it,
+            >. Every feature, unlimited tenants, forever. Self-host it,
             modify it, run your whole fleet on it.
           </p>
         </section>
@@ -78,10 +78,10 @@ const description =
         <section class="varroa-pricing__tier varroa-pricing__tier--featured">
           <h2>Commercial</h2>
           <p class="varroa-pricing__price">
-            Per team <span>per year</span>
+            Per tenant <span>per year</span>
           </p>
           <p>
-            Licensed per team, not per user, agent, or controller.
+            Licensed per tenant, not per user, agent, or controller.
           </p>
         </section>
 
@@ -91,7 +91,7 @@ const description =
             Flat rate <span>per year</span>
           </p>
           <p>
-            Unlimited teams for a flat rate.
+            Unlimited tenants for a flat rate.
           </p>
         </section>
       </div>
@@ -114,7 +114,7 @@ const description =
         <p>
           For licensing inquiries: email
           <a href="mailto:licensing@varroa.dev">licensing@varroa.dev</a> with
-          a rough team count.
+          a rough tenant count.
         </p>
       </section>
     </main>

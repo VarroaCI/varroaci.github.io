@@ -28,10 +28,10 @@ spec:
   roleRef: payments-builder
   subjects:
     - kind: Group
-      name: payments-team
+      name: payments-tenant
   controllerScope:
     namespaces:
-      - teams-payments
+      - tenants-payments
   jenkinsScope:
     type: Folder
     folder: payments
@@ -74,13 +74,35 @@ Varroa reconciles the built-in Jenkins roles `varroa-admin`,
 of editing built-ins. See [executeGroovy security](execute-groovy.md) for the
 operator role.
 
+The table lists the permissions of the built-in human roles on a classic controller. It omits the system roles:
+
+| Role | Permissions |
+| --- | --- |
+| `varroa-admin` | All permissions, through `Overall/Administer`. |
+| `varroa-operator` | Read, build, cancel, configure, create, delete, workspace, run delete and update, view read and configure. |
+| `varroa-developer` | Read, build, cancel, configure, create, workspace, run update, view read. |
+| `varroa-viewer` | Read only. |
+
+On a classic controller, `varroa-operator` and `varroa-developer` can stop a build (`Job/Cancel`). `varroa-viewer` cannot.
+
 ## Federate roles to hive clusters
 
 Varroa copies each core `VarroaRoleBinding` that grants a Global Jenkins role
 to every hive as a `varroa-fed-*` `JenkinsRoleBinding` and `JenkinsRole`. It
-skips a binding with no subjects, a `tenants` scope, or a reserved `system-*`
-role, and deletes its earlier copy. The BFF logs a failed copy as
-`rbac federation warning`.
+skips a binding with no subjects or a reserved `system-*` role, and deletes its
+earlier copy. The BFF logs a failed copy as `rbac federation warning`.
+
+A binding with a `tenants` scope whose role grants pipelines `write` gets one
+`varroa-fed-tenant-*` `JenkinsRoleBinding` for each tenant on each hive. A
+member cell that hosts the tenant reads that copy for its tenant member role
+only. A binding with a `tenants` scope and no pipelines `write` stays on the
+core cluster.
+
+A binding with no `scope` whose role grants pipelines `write` also gets one
+`varroa-fed-tenant-all-*` `JenkinsRoleBinding` on each hive. Its annotation
+`varroa.dev/federated-tenant` is `"*"`. A member cell gives its subjects the
+member role of every tenant that it hosts. A role with pipelines `write` and no
+Jenkins projection federates only this copy.
 
 ### Read the federation status
 
@@ -90,16 +112,17 @@ cluster has no entry. A hive that leaves the fleet loses its entry on the next
 pass.
 
 ```bash
-kubectl get varroarolebinding team-admins -o jsonpath='{.status.federation}'
+kubectl get varroarolebinding tenant-admins -o jsonpath='{.status.federation}'
 ```
 
 | `state` | `reason` | Meaning |
 |---|---|---|
-| `federated` | `Federated` | The hive holds the `JenkinsRole` and the `JenkinsRoleBinding`. |
+| `federated` | `Federated` | The hive holds the `JenkinsRole` and the `JenkinsRoleBinding`. For a tenant grant or a cluster-wide pipelines `write` grant, the hive holds the tenant copies. |
 | `skipped` | `NoSubjects` | The binding has no subjects. |
-| `skipped` | `TenantScope` | The scope names `tenants`. A tenant grant stays on the core cluster. |
+| `skipped` | `NoTenantWrite` | The scope names `tenants`, and the role grants no pipelines `write`. The grant stays on the core cluster. |
+| `skipped` | `NoTenantJobs` | The scope names `tenants`, and no tenant entry names a job or a whole folder. |
 | `skipped` | `RoleNotFound` | The `roleRef` names no `VarroaRole`. |
-| `skipped` | `NoJenkinsProjection` | The role sets no `jenkinsRoleRef` and no `jenkinsPermissions`. |
+| `skipped` | `NoJenkinsProjection` | The role sets no `jenkinsRoleRef` and no `jenkinsPermissions`, and the binding gets no tenant copy. |
 | `skipped` | `JenkinsRoleNotFound` | The role's `jenkinsRoleRef` names no core `JenkinsRole`. |
 | `skipped` | `NonGlobalJenkinsRole` | The referenced `JenkinsRole` is not Global. |
 | `skipped` | `ReservedRole` | The role projects onto a reserved `system-*` role. |
@@ -154,7 +177,7 @@ own `status.federation`. `status.observedGeneration` is set only when the BFF
 writes the role status, so it is not a health signal:
 
 ```bash
-kubectl get varroarole team-admin -o jsonpath='{.status.federation}'
+kubectl get varroarole tenant-admin -o jsonpath='{.status.federation}'
 ```
 
 | `state` | `reason` | Meaning |

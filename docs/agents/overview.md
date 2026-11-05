@@ -9,12 +9,15 @@ as an administrator token.
 |---|---|---|---|
 | Your own MCP client | You, through your API key | The client calls write tools directly. Your grants are the gate. | [Connect a client](connecting.md) |
 | The assistant in the dashboard | You, while you are signed in | Every write waits for your approval. | [Assistant](assistant.md) |
+| A Tenant agent for a pipelines Tenant | The Tenant agent principal, with the grants of its Tenant | A write waits for approval, unless the object grants it. | [Tenant agents](tenant-agents.md) |
 
 ## What every agent shares
 
 Both ways use one tool surface, one grant check, and one audit trail. MCP does
 not provide a shell or unrestricted Kubernetes access. See
 [Identity and auditing](identity.md) and [Tool reference](tools.md).
+
+Four read tools also return a card for a host that supports MCP Apps. The text result is the same. See [Tool behavior](tools.md#mcp-apps-views).
 
 ## Start
 
@@ -42,6 +45,8 @@ Credentials and sensitive status fields are removed from tool results. See
 
 - [Connect a client](connecting.md)
 - [Assistant](assistant.md)
+- [Tenant agents](tenant-agents.md)
+- [Tenant agent safety](safety.md)
 - [Identity and auditing](identity.md)
 - [Jenkins controller tools](jenkins-tools.md)
 - [Tool reference](tools.md)

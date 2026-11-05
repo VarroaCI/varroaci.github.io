@@ -1,6 +1,6 @@
 # Read and Run Pipelines
 
-Open a team's pipelines, read a build's log, download an artifact, and start a build with
+Open a tenant's pipelines, read a build's log, download an artifact, and start a build with
 parameters.
 
 ## Prerequisite
@@ -9,26 +9,45 @@ The pipelines pages need the [build record store](../operations/build-records.md
 `recordStore.enabled: true` in your Helm values before you start. With the store off, the
 **Pipelines** row still shows, and every page says so instead of listing builds.
 
-## Open a team
+## Pipelines home
 
-Sign in and select **Pipelines** in the sidebar. You see the pipelines of every [Team](../security/varroa-rbac.md#grant-pipelines-access) that grants you a `pipelines`
-verb. `/pipelines` lists only the teams that hold pipelines you can read, including member-cluster
-teams. A team with no pipelines and no controllers in its namespaces does not show. It opens your
-only team automatically. With more than one, pick one.
+Select **Pipelines** to see the runs of every tenant you can read, newest first.
 
-A team on a member cluster shows its definition, parameters, declared jobs, source input, and version profile. Varroa reads them from the member at each request.
+The attention strip shows counts that need action. Each chip sets a feed filter. The counters cover the last 24 hours.
+
+The tenant rail selects one tenant. Select a column header to sort the feed. The URL keeps the view, so a link reproduces it.
+
+Each row menu offers **Open**. **Re-run** and **Cancel** appear only when you can write the tenant.
+
+A row names its job below its tenant. A run with no commit subject shows its job and build number as its title. A cron, SCM, or upstream run shows its trigger and no actor. The pass rate does not count interrupted or not-built runs.
+
+Consecutive finished runs of one job fold into one row, such as **cron-probe × 40**. The runs must share a branch, a trigger, an actor, and a result. Select the row to show its runs. Folding applies under the default sort with no job filter. A run with a commit subject does not fold.
+
+On a phone, the rail becomes a row of chips.
+
+## Open a tenant
+
+Sign in and select **Pipelines** in the sidebar. You see the pipelines of every [Tenant](../security/varroa-rbac.md#grant-pipelines-access) that grants you a `pipelines`
+verb. `/pipelines` lists only the tenants that hold pipelines you can read, including member-cluster
+tenants. A tenant with no pipelines and no controllers in its namespaces does not show. Select a
+tenant in the rail, or open it with its **Open** link.
+
+A tenant on a member cluster shows its definition, parameters, declared jobs, source input, and version profile. Varroa reads them from the member at each request.
 
 ## Your cell card
 
-A team on a [cell](../operations/cells.md) shows a placement pill under the page title. The pill
+A tenant on a [cell](../operations/cells.md) shows a placement pill under the page title. The pill
 names the state and the cell. The **Your cell** card sits behind the pill and starts closed.
 
 Select the pill to open the card. The card names the cell, its pool, its version profile, and its
 Jenkins version. It also reports the free tenant slots on the cell, the length of the cell's build
 queue, and your own running builds.
 
-One line counts the other teams on the cell without naming them, and shows none of their jobs,
+One line counts the other tenants on the cell without naming them, and shows none of their jobs,
 builds, or counts.
+
+Beside the pill, one line names a member cluster, the other tenants, the free slots, and any
+warning. **Open cell** links to the cell when your access covers it.
 
 **Cell details** opens the cell's controller page, if your access covers it. Otherwise you still
 read every field.
@@ -38,12 +57,12 @@ The card reports one of five states.
 | State | What the card shows |
 |---|---|
 | Placed | the whole card |
-| Moving | the whole card, plus a note that Varroa is moving the team |
-| Rehydrating | the whole card, plus a note that the cell is rebuilding the team's folders |
-| Not placed | the badge and the reason only. The team waits for its first cell |
-| No card | the team runs on its own controller, so no cell hosts it |
+| Moving | the whole card, plus a note that Varroa is moving the tenant |
+| Rehydrating | the whole card, plus a note that the cell is rebuilding the tenant's folders |
+| Not placed | the badge and the reason only. The tenant waits for its first cell |
+| No card | the tenant runs on its own controller, so no cell hosts it |
 
-Callers who can read a team with no pipelines see No pipelines. Other callers see Not found.
+Callers who can read a tenant with no pipelines see No pipelines. Other callers see Not found.
 
 **Reason** carries the operator's text, such as `CellNotReady`.
 
@@ -51,21 +70,23 @@ A cell in another cluster reports no queue length. The **Queue** figure then rea
 which is not an empty queue.
 
 **Free slots** counts the free tenant slots of this cell alone. The cell's pool can hold a lower
-cap, which stops a new team from landing even while the cell reports a free slot.
+cap, which stops a new tenant from landing even while the cell reports a free slot.
 
 ## Read the pipelines tree
 
-Four cards follow the page head: **Running now**, **Pipelines**, **Locks**, and **Runners**.
+Four cards follow the page head: **Running now**, **Pipelines**, **Locks**, and **Runners**. An empty card reads one line of text.
 
 **Running now** holds one tile per build in progress: the job name, the build number, the
 current stage, the branch, and a progress bar against the job's usual duration. The stage line
 names the run's top-level stage in progress. A running build with no stage in progress reads
 `Starting`, and a build that has not started reads `Queued`.
 
-**Pipelines** holds the team's folder tree. A job row carries its health, its last build, its
-branch, its last eight build durations, and when it last ran. **Queue wait** shows the job's
-median wait from queue entry to start over the last 30 days. Health is a weather glyph: clear when the last five runs passed, cloudy when one or two failed, and rain when three
-or more failed. A job that never ran shows no glyph and an empty last build.
+**Pipelines** holds the tenant's folder tree. A job row carries its health, its last build, its
+branch, its last eight build durations, and when it last ran. The last build shows a status glyph,
+the actor, and the commit subject, cut to two lines. **Queue wait** shows the job's
+median wait from queue entry to start over the last 30 days. Health is a weather glyph. A job
+that never finished a counted build shows no glyph and an empty last build. See
+[Read a job's health](#read-a-jobs-health).
 
 A folder that its cell holds shows no declared job; run history shows. See [Cells and Pipelines Tenants](../operations/cells.md).
 
@@ -90,7 +111,7 @@ The fold state lives in the page URL, as one `open` value per unfolded folder:
 Copy that URL to share the view. A reload keeps the folds. `?open=` with no value folds
 everything.
 
-**Runners** lists the [external runners](../operations/runners.md) bound to the team. Each row
+**Runners** lists the [external runners](../operations/runners.md) bound to the tenant. Each row
 shows the launcher, the labels, the cell, the connection state, and the last contact time.
 
 A caller whose grant carries `jobs` globs reads only the matching jobs and running builds. A
@@ -98,9 +119,44 @@ folder holding no readable job does not appear at all. See
 [Varroa RBAC](../security/varroa-rbac.md#scope-a-binding-to-a-pipelines-tenant) for how an
 administrator writes those globs.
 
+## Read a job's health
+
+A job page opens with a **Health** card. Health counts the job's last ten finished build runs.
+A run that succeeded passes. A run that failed, was unstable, or was aborted fails. A run that
+was interrupted or was not built does not count, so it does not change the score.
+
+The summary counts counted builds, for example **2 of 3 counted builds passed**. The score is the share of counted runs that passed, rounded down. The **Last 30 days** card uses the same rule. The glyph names the bucket:
+
+| Bucket | Score | Glyph |
+|---|---|---|
+| Sunny | above 80 | sun |
+| Partly cloudy | above 60 | cloud and sun |
+| Cloudy | above 40 | cloud |
+| Rainy | above 20 | cloud and rain |
+| Stormy | 20 or below | cloud and lightning |
+
+A job with no counted run reads **No counted build yet**, and it shows no glyph.
+
+A legend names the four colours. Each chart shows its scale and its first and last builds. The card shows three charts over the same runs, oldest on the left:
+
+- **Results** is one square for each run. Each square links to its build page. A run that was
+  interrupted or was not built is grey, and its label says it is not counted.
+- **Duration** is one bar for each run that recorded a duration. Hover a bar to read its build
+  number, duration, and result.
+- **Tests** is one stacked bar for each run that recorded suite counters: passed, failed, and
+  skipped. The chart appears only when at least one run recorded them.
+
+A job whose builds publish coverage or warnings also shows a **Quality trend** card beside the
+Health card. It uses the same runs, oldest on the left. Each coverage report has a line chart of
+the line percent, and of the branch percent when present. The coverage axis covers only the range of the data, and two labels show its bounds. Each warnings report has a bar chart of
+the warning total. Each point links to its build page. A run without the report leaves a gap.
+
+A multibranch job or an organization folder holds no runs of its own, so it has no Health card.
+Each branch job has its own health.
+
 ## Open a build
 
-Breadcrumbs name the team, folders, and job. A folder crumb opens the team page with that folder unfolded. On build and test pages, the job crumb links to the pipeline page.
+Breadcrumbs name the tenant, folders, and job. A folder crumb opens the tenant page with that folder unfolded. On build and test pages, the job crumb links to the pipeline page.
 
 A pull-request run shows a PR chip beside its branch and a **Pull request** row.
 
@@ -113,11 +169,12 @@ A shared library in the **Ran with** row links to its repository: the commit, or
 
 The **Jenkinsfile** and **Source input** rows link GitHub, GitLab, Gitea, and Forgejo hosts when the forge is known. Other hosts show text.
 
-The page lists the job's builds, filterable by branch, result, actor, and cause. Each filter
-stays in the page URL, so a filtered view is shareable and survives a reload.
+The page lists the job's builds, filterable by branch, result, actor, and cause. The
+**Result** filter lists the six results. Each filter stays in the page URL, so a filtered view is shareable and survives a reload.
 
 The commit opens on GitHub, GitLab, Gitea, or Forgejo. Other hosts get a copy button.
 The branch opens the pipeline page filtered to that branch. The **Queue** column shows each build's wait.
+A pull-request build shows the head commit of the pull request, never a local merge commit. A shared library commit never replaces the build's own commit.
 
 The build page shows the parameters that the build ran with. A masked value appears as four dots.
 A replayed build names the build that it copied, with a link. A restarted build names the build
@@ -142,18 +199,19 @@ Open the **Log** tab. The log viewer supports:
 
 - A search box, bound to `/`.
 - A **First error** jump to the first line matching `error`, `failed`, `failure`, or
-  `exception`.
+  `exception`. It shows only for a `FAILURE`, `UNSTABLE`, `ABORTED`, or `INTERRUPTED` run.
 - A **Timestamps** toggle.
 - A **Follow** toggle that keeps the view at the newest line. It turns off when you scroll up,
   select a stage, or jump to a line with a permalink, a search, or **First error**. It is off
   and disabled when the run has ended and its log is complete.
 - A **Raw** link that opens the same log as plain text in a new tab.
 
-Select a stage in the stage graph to scroll the log to that stage's header. A header sits before
-the first line of its stage. A parallel branch that has no lines of its own opens at its first
-nested stage. A `#stage-<id>` fragment in the URL does the same and also scrolls the page. Every line carries a
-permalink: append `#L<line number>` to the build page URL to open it scrolled to that line,
-highlighted.
+A header sits before each run of a stage's lines. A line that belongs to no stage does not end a run. Select a header to collapse or expand its stage.
+The agent pod manifest is folded by default. A jump or search that finds a hidden line opens its group.
+
+Select a stage in the stage graph to scroll to its header and expand it. A `#stage-<id>` fragment does
+the same and also scrolls the page. Every line carries a permalink: append `#L<line number>` to the
+build page URL to open it scrolled to that line, highlighted.
 
 The **Log** tab shows a banner naming the reason when the run's log did not close complete, for
 example after a lost chunk. A log with that banner is missing bytes; do not treat it as the full
@@ -186,6 +244,13 @@ report from the **Tests** tab.
 The **Tests** tab shows the totals, the failed and skipped cases (at most 500), and a suite table.
 The **Class** column shows only when a suite holds more than one class.
 
+The build page shows a **Quality** card below the Pipeline card with the coverage and warnings
+reports of the build. A coverage row shows the line, branch, and modified-line percentages. A
+warnings row shows the total and the count for each severity. It shows the new and fixed counts
+only when Jenkins found a reference build. Each row shows its gate status and its change since the
+newest earlier build of the job with the same report. The change links to that build. When Jenkins publishes more than 20 reports of a kind, the card tells how many it did not keep. The card is
+absent when the build published no report.
+
 ## Run a job with parameters
 
 On the pipeline page, select **Run**. This control is present only for a caller who holds the
@@ -207,13 +272,69 @@ that build exists, because Varroa allows one retry per build.
 ## Concurrent runs of the same job
 
 A job can start a new build before an older one finishes. The
-`Team.spec.pipelines.concurrency` setting controls this: `allow` (the default) runs both, and
+`Tenant.spec.pipelines.concurrency` setting controls this: `allow` (the default) runs both, and
 `cancelInProgress` cancels the older run fleet-wide once the new run claims a
 build number.
 
 The setting is per tenant, and the group it cancels within is the job path itself, not the
 build. A multibranch child job's path includes its branch, so a new build on one branch never
 cancels another branch's build.
+
+Use `cancelInProgress` when a pull request builds again against a new target commit. The newer build then usually sets the last commit status.
+
+## Show a build badge
+
+The job page shows a status badge when the tenant turns badges on. The card shows the badge
+preview, its URL, and a Markdown snippet. Copy the snippet into a README. When badges are off, the page shows one line instead.
+
+The badge shows the result of the newest completed build. A build that failed to trigger does not
+count. The colours are:
+
+- Green: passing.
+- Red: failing.
+- Yellow: unstable.
+- Grey: aborted, not built, interrupted, or no runs.
+- Blue: a build runs, and no completed build exists.
+
+A multibranch job shows its `main` branch by default. Type a branch name in the **Branch** field of
+the card to show that branch. Badges are off by default. A tenant on a member cluster serves its
+badge the same way. A change to the switch or the token reaches the dashboard on the next operator
+tick. See [Anonymous build badges](../operations/multi-tenancy.md#anonymous-build-badges).
+
+## Lint a Jenkinsfile
+
+Send a Jenkinsfile to the tenant's cell before you commit it. The cell runs the Jenkins declarative linter. The lint checks declarative pipelines only. A scripted Jenkinsfile, such as a loader that calls `load`, answers one `jenkins` error that says the file is scripted. A cell-hosted tenant also runs the Varroa cell rules, such as `no-job-dsl`, which reject a Job DSL step.
+
+Post the file text to `POST /api/v1/pipelines/{tenant}/lint` as the `jenkinsfile` field. The file is at most 256 KiB. The answer carries `valid` and an `errors` list. Each error has a `source` (`jenkins` or `varroa`), a `message`, and, when the linter gives one, a `line` and a `column`.
+
+Or run the same check from a shell:
+
+```bash
+varroactl lint jenkinsfile --tenant payments --file Jenkinsfile
+```
+
+The lint never starts or wakes a cell. A hibernated or stopped cell answers 409, so start a run to wake the cell, then lint again. A tenant on a member cluster gets the same lint through that cluster's operator.
+
+## Publish coverage and warnings
+
+Add the `recordCoverage` and `recordIssues` steps to a job. When the build completes, Varroa keeps a summary of each report. A coverage summary holds the line and branch counts. It also holds the modified-lines counts when the plugin computes them. It holds up to 16 other coverage metrics and the gate status. A warnings summary holds the total, the error, high, normal, and low counts. It also holds the gate status. It holds the new and fixed counts only when the report has a reference build. Varroa keeps at most 20 reports of each kind. The run detail API and the MCP get_run tool count the reports and metrics that Varroa did not keep. It cuts each id and name at 128 characters. Varroa does not keep the report files. A build with no report has no summary.
+
+```groovy
+pipeline {
+  agent { label 'payments-maven' }
+  stages {
+    stage('build') {
+      steps { container('maven') { sh 'mvn -B verify' } }
+      post {
+        always {
+          recordCoverage(tools: [[parser: 'JACOCO', pattern: '**/jacoco.xml']], id: 'jacoco', name: 'Coverage')
+          recordIssues(tools: [checkStyle(pattern: '**/checkstyle-result.xml')])
+        }
+      }
+    }
+  }
+}
+```
 
 ## Next steps
 

@@ -88,13 +88,22 @@ const snippets = snippetsFrom(connectingMarkdown);
           Point the assistant at an OpenAI-compatible endpoint or the Anthropic API, so a self-hosted model works.
         </p>
         <p>
-          It sees what you may see, bounded by the data level your team sets. It records every step. Every write waits for
+          It sees what you may see, bounded by the data level your tenant sets. It records every step. Every write waits for
           your approval.
         </p>
         <a class="varroa-link" href="/docs/agents/assistant/">The assistant</a>
       </section>
 
-      {/* The Team agents block follows here (A3). */}
+      <section class="varroa-agents__section" id="tenant-agents" aria-labelledby="tenant-agents-heading">
+        <h2 id="tenant-agents-heading">Tenant agents</h2>
+        <p>Run an agent for a pipelines Tenant. It starts on a failed build, a missed schedule, or a request from you.</p>
+        <p>
+          It reads the Tenant's instructions from a repository, and it can post a note, open an issue, or send the Tenant's
+          webhook. Every write it makes needs your approval, unless you grant it.
+        </p>
+        <a class="varroa-link" href="/docs/agents/tenant-agents/">Tenant agents</a>
+        <a class="varroa-link" href="/docs/agents/safety/">Tenant agent safety</a>
+      </section>
     </main>
 
     <SiteFooter />

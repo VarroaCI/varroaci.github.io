@@ -118,6 +118,11 @@ revision Jenkins has recorded for the job at the moment the claim runs. A second
 same revision reuses the same key and reads `granted` again on its own run, or `duplicate` if a
 different run already claimed it.
 
+For a pull-request build, the key keeps the revision text that the branch source reports. A rebuild
+against a new target commit therefore gets a new key. The build record keeps the pull-request
+revision of the run. The completion event sends the same revision. The rule is in
+[Pull-request revision](commit-status.md#pull-request-revision). Two builds of one pull request against different target commits both run. The record store does not mark the newer build as a duplicate. Both builds report one status context. See [Two builds of one pull request](commit-status.md#two-builds-of-one-pull-request).
+
 ## Build numbers in a burst
 
 The plugin applies one grant of a job at a time. The next grant waits until the last grant's run

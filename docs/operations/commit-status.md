@@ -22,6 +22,26 @@ The GitHub App needs "Checks: write" on the repository. A classic or fine-graine
 access token cannot publish a check. Store the App credential as a `githubApp` tenant
 credential. See [Projected credentials](cells.md#what-composes-a-tenant).
 
+### Re-run a check
+
+A user selects **Re-run** on a check that Varroa reported. GitHub sends the re-run request only
+to the GitHub App that created the check. Point that App at the tenant door:
+
+- Webhook URL: `https://<host>/hibernation/<token>/tenants/<tenant>/queue/github-webhook/`.
+  Read `<token>` from `status.pipelines.webhookToken`.
+- Webhook secret: the value of `status.pipelines.webhookSecret`.
+- Events: subscribe the App to **Check run** and **Check suite**.
+
+One App serves one tenant. A second tenant needs its own App.
+
+A re-run starts a build of the branch's current head. It does not rebuild the original commit.
+A re-run keeps the fork trust decision of the branch source. **Re-run all checks** on a pull
+request from a fork starts no build. The tenant rules are in
+[Re-run from GitHub](webhooks.md#re-run-from-github).
+
+If an earlier run of the same revision is still live, the record store marks the new run
+`DUPLICATE`. The new run does not build. Re-run after the earlier run completes.
+
 ## Plain jobs
 
 A plain pipeline job has no SCM source that reports a status. Call the `githubNotify` step
@@ -106,12 +126,12 @@ hook to the organization instead. See [Tenant webhooks](webhooks.md).
 
 | Field | Value |
 |---|---|
-| Target URL | `https://<host>/hibernation/<token>/teams/<team>/queue/gitea-webhook/post` |
+| Target URL | `https://<host>/hibernation/<token>/tenants/<tenant>/queue/gitea-webhook/post` |
 | Content type | `application/json` |
 | Secret | The value of `status.pipelines.webhookSecret` |
 | Events | Push and pull request |
 
-The `<token>` and the `<team>` come from the tenant. The webhook must reach the dashboard
+The `<token>` and the `<tenant>` come from the tenant. The webhook must reach the dashboard
 host on port 443.
 
 ## Network
@@ -123,6 +143,71 @@ The cell must reach the forge API on port 443. Allow the egress in
 
 Varroa does not report commit status to GitLab or Bitbucket.
 
+## Interrupted builds
+
+Jenkins sets a commit status when a build completes. The recorder can end a build that Jenkins
+never completes. The status then stays `pending`. The operator fixes this in three steps:
+
+1. The recorder ends the build with a synthetic end reason.
+2. The operator reads the statuses of the build's commit.
+3. The operator sets each `pending` status of that build to `error`.
+
+The operator writes the status with the tenant credential. The credential must allow a push to the
+repository. The operator tries each pushing credential in turn. A forge 403 moves to the next
+credential. A forge rate limit stops the attempt. The operator logs it, and the status stays pending. The new status keeps the context and the link of the old status. Its description reads
+`Varroa ended the build: <reason>`.
+
+The operator changes only a status that matches the build by its job path and build number. A
+status that has an end state is never changed. A retry of the build has its own build number, so
+the retry keeps its own pending status.
+
+These builds keep their `pending` status:
+
+- A provisional end: `heartbeat-lost` and `start-lost`. The build can still finish. The build's own
+  completion then writes its status.
+- A build with no recorded commit or no recorded repository.
+- A tenant whose only credential is a `githubApp` credential. The operator does not end a status
+  with a GitHub App credential.
+
+The forge reports the status on the pull-request revision of the run. See
+[Pull-request revision](#pull-request-revision). The start event carries that revision too, so a build
+that stops before its checkout still names it.
+
+A failed write leaves the status `pending`. The operator logs the failure and does not retry.
+
+The operator runs at most four of these writes at once on each replica. When all four are busy, the
+operator drops the write and logs it at `Info`. The status then stays `pending`.
+
+The write can race the retry. If the retry's own `pending` status lands first, the `error` write can
+land after it. The context then shows `error` until the retry build completes. The retry build then
+writes its own end state, which replaces the `error`.
+
+## Pull-request revision
+
+A pull-request build records one revision. The rule has two parts:
+
+- The revision action hash, when the branch source provides one. The GitHub, Gitea, Forgejo,
+  and Bitbucket branch sources provide it. It is the head commit of the pull request.
+- The pre-merge commit of the checkout, when the branch source provides no hash.
+
+The recorder never records the local merge commit of the checkout, on any forge.
+
+## Two builds of one pull request
+
+A pull request can build again when its target branch moves. The new build and the older build
+share the head commit. Both builds report the same status context on that commit. The plugin
+writes the context when each build completes. The build that completes last sets the context, so
+an older build can replace the result of the newer build.
+
+To keep the newer result, set `Tenant.spec.pipelines.concurrency` to `cancelInProgress`. The newer
+build then cancels the older build when it claims its build number. The recorder publishes the cancel asynchronously. The older build therefore usually completes
+first. The newer build then usually writes the last status. The order of those writes is not
+guaranteed. Until the newer build completes, the context can show the cancelled build's state.
+
+Varroa does not set the context name. The plugin sets it. The `github-branch-source` plugin uses
+`continuous-integration/jenkins/pr-merge` by default. Read the context name on the forge before
+you set a required status check.
+
 ## Status links
 
 The status link of a build points to the Varroa build page. A plain job without a `targetUrl`
@@ -132,6 +217,6 @@ gets this link. The link has this form:
 https://<dashboard>/headless/<cluster>/<namespace>/<cell>/job/<job path>/<n>/display/redirect
 ```
 
-The door opens `/pipelines/<team>/<job>/<runId>`. A multibranch build link has the same form,
-for example `…/job/<team>/job/<repo>/job/PR-<n>/<b>/display/redirect`. See
+The door opens `/pipelines/<tenant>/<job>/<runId>`. A multibranch build link has the same form,
+for example `…/job/<tenant>/job/<repo>/job/PR-<n>/<b>/display/redirect`. See
 [Headless controllers](../security/headless-controllers.md) for the door.

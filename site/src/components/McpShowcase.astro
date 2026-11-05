@@ -13,14 +13,14 @@
 // immediately, no animation.
 
 const transcript = [
-  { kind: "prompt", text: "Bring up a Jenkins controller for team-alpha and run its smoke-test job." },
-  { kind: "tool", text: "create_composed_bundle({ name: \"team-alpha-baseline\", inputs: [...] })" },
-  { kind: "result", text: "→ ComposedBundle/team-alpha-baseline ready, contentRef resolved" },
-  { kind: "tool", text: "create_controller({ name: \"team-alpha\", namespace: \"teams-platform\", composedBundleRef: \"team-alpha-baseline\" })" },
-  { kind: "result", text: "→ Controller/team-alpha created, phase: Provisioning" },
-  { kind: "tool", text: "call_jenkins_tool({ name: \"team-alpha\", method: \"tools/call\", params: { name: \"build_job\", … } })" },
+  { kind: "prompt", text: "Bring up a Jenkins controller for tenant-alpha and run its smoke-test job." },
+  { kind: "tool", text: "create_composed_bundle({ name: \"tenant-alpha-baseline\", inputs: [...] })" },
+  { kind: "result", text: "→ ComposedBundle/tenant-alpha-baseline ready, contentRef resolved" },
+  { kind: "tool", text: "create_controller({ name: \"tenant-alpha\", namespace: \"tenants-platform\", composedBundleRef: \"tenant-alpha-baseline\" })" },
+  { kind: "result", text: "→ Controller/tenant-alpha created, phase: Provisioning" },
+  { kind: "tool", text: "call_jenkins_tool({ name: \"tenant-alpha\", method: \"tools/call\", params: { name: \"build_job\", … } })" },
   { kind: "result", text: "→ Build #1 queued, then SUCCESS" },
-  { kind: "tool", text: "call_jenkins_tool({ name: \"team-alpha\", method: \"tools/call\", params: { name: \"get_build_log\", … } })" },
+  { kind: "tool", text: "call_jenkins_tool({ name: \"tenant-alpha\", method: \"tools/call\", params: { name: \"get_build_log\", … } })" },
   { kind: "result", text: "→ \"smoke-test PASSED\"" },
 ];
 ---

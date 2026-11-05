@@ -57,7 +57,11 @@ Each setting takes a comma-separated list of claim names.
   prefix is reserved for local accounts.
 - Group values from an IdP token are not checked for the prefix. Group subjects use
   a separate key kind, so a group value cannot match a user binding.
-- The same claim names apply to the dashboard and to every Jenkins controller.
+- The same claim names apply to the dashboard. On a Jenkins controller, a binding
+  on a configured custom claim value reaches the cell too. The operator reads the
+  value from the person's `User` object, which stores it at sign-in. Only a string
+  claim counts. The `name` claim never names a principal.
+- When you delete a user from the dashboard, from `varroactl delete user`, or with the MCP tool `delete_user`, Varroa removes the identifiers from every role binding. It removes the subject, the current and former preferred usernames, the current and former emails, and the current and former custom claim values. A value that another signed-in person now holds stays in the bindings.
 
 For AWS Cognito groups, set the group claim to the Cognito claim name:
 
@@ -130,7 +134,7 @@ dex:
 
 Dex sends one group for each organization, `<org>`, and one for each team, `<org>:<team>`.
 A user on no team of an organization gets no group for it.
-A `Team` or a `VarroaRoleBinding` can bind either string, for example `acme` or `acme:Owners`.
+A `Tenant` or a `VarroaRoleBinding` can bind either string, for example `acme` or `acme:Owners`.
 With `useLoginAsID`, the forge login is the user identity.
 If the forge does not listen on port 443, add its port to `networkPolicy.dexConnectorEgress.ports`. Pin its addresses in `networkPolicy.dexConnectorEgress.cidrs`.
 
@@ -185,6 +189,13 @@ dex:
 
 The chart requires `auth.bffUrl` in this mode.
 Create users through the dashboard or users API.
+The API refuses a name that already exists with 409. Use an update to change an existing user.
+The MCP tool `create_user` also needs a password. It does not set group membership. Change group membership with the group update tool, in the dashboard, or through the groups API.
+The MCP tool `update_user` acts only on a local account in the operator namespace. The MCP tool `delete_user` acts only in the operator namespace.
+
+The operator creates the first admin from the Secret `varroa-admin-credentials`.
+A new Secret adds its user to the `varroa-admins` group and to the `varroa-admin-bootstrap` role binding.
+Other members and subjects of both objects stay.
 
 ## Add local accounts beside OIDC
 
@@ -212,6 +223,8 @@ spec:
 An account needs `purpose` and signs in as `local:<name>`. The profile page shows such a session as `via local account`.
 Each sign-in writes an `auth.local.login` event. A failed attempt on a declared
 account writes `auth.local.login_failed`. An unknown name writes no event.
+A password set on a local account writes a `user.password_set` event. An admin set and a self-service change both write it. The event does not carry the password.
+A REST or MCP create or delete of a group writes a `group.created` or `group.deleted` event.
 
 ## Configure controller SSO safely
 

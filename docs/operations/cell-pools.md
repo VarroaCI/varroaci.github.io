@@ -14,7 +14,7 @@ Read [Cells and pipelines tenants](cells.md) first.
 | `profileRef` | string, required, immutable | the `JenkinsVersionProfile` the pool's cells run |
 | `warm` | int32, default 0 | target count of free cells the pool keeps ready |
 | `maxCells` | int32, default 0 | cap on the pool's cells, placed cells included. 0 means unlimited |
-| `maxTenantsPerCell` | int32, minimum 1, default 10 | capacity a pool cell uses when its own `spec.cell.maxTenants` is zero |
+| `maxTenantsPerCell` | int32, minimum 1, maximum 64, default 10 | capacity a pool cell uses when its own `spec.cell.maxTenants` is zero |
 | `maxRunsPerTenant` | int32, 0 to 10000, default 0 | builds one tenant runs at once on one cell; zero means no cap. A build over the cap waits. Set it on the object; the scale API does not change it |
 | `unreadyGracePeriod` | duration, optional | how long a pool cell may stay unready before the operator rolls its pod |
 | `cellTemplate` | object, optional | `resources`, `miteResources`, and `podOverrides` for the cells the pool creates |
@@ -57,7 +57,7 @@ Reasons rank from the top row down. The status reports the highest that applies.
 
 ## Create a pool
 
-The operator creates `CellPool/<profile>` for each profile a pipelines `Team` requests, when
+The operator creates `CellPool/<profile>` for each profile a pipelines `Tenant` requests, when
 `cells.warmPool.enabled` is true. The chart values seed the new pool:
 
 ```yaml
@@ -71,7 +71,7 @@ cells:
 
 Each value seeds a new pool only. A Helm upgrade never rewrites the spec of an existing pool.
 
-The chart refuses a `cells.maxTenantsPerCell` or `cells.warmPool.perProfile` below 1.
+The chart refuses a `cells.maxTenantsPerCell` below 1 or above 64, and a `cells.warmPool.perProfile` below 1.
 
 To create a second pool, apply one:
 
@@ -125,7 +125,7 @@ Each cluster of the brood holds its own pools. A pool name is unique inside one 
 varroactl get cellpools
 varroactl describe cellpool jenkins-lts
 varroactl scale cellpool jenkins-lts --warm 3 --max-cells 8
-varroactl scale cellpool lts-2-570 --cluster east --warm 2
+varroactl scale cellpool lts-2-588 --cluster east --warm 2
 ```
 
 `get cellpools` lists every cluster, with a `CLUSTER` column. A command on one pool uses the core
@@ -169,6 +169,22 @@ The pool re-stamps `spec.version`, `spec.resources`, `spec.podOverrides`, and
 and never edits a cell that holds a tenant. A `cellTemplate` edit therefore rolls the free cells
 at once, and reaches a placed cell only after it drains. To grow a placed tenant, move
 it to a pool with a larger template.
+
+## Watch a voluntary move
+
+A voluntary move ends when the old cell drops the tenant. Read these fields on the old cell's
+`Controller` status with `kubectl`. Both lists are subsets of `status.cell.tenants`.
+
+- `status.cell.drainingTenants` lists the tenants that the last delivered desired state leaves out.
+  No component uses it to decide a drain. No dashboard panel shows it.
+- `status.cell.appliedTenants` lists the tenants whose folder the cell holds. A draining tenant never
+  enters it. The Topology panel of the Cell tab shows it.
+
+The operator advances `appliedTenants` only after an items walk of the current desired state, from
+the current pod. A result from a replaced pod changes nothing.
+
+The move proceeds when `appliedTenants` no longer names the tenant and the cell has no pending item
+deletion for it. Check `status.pendingItemDeletions` for a stuck delete.
 
 ## Pool secrets
 

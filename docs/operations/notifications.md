@@ -10,11 +10,11 @@ the signing key.
 
 ## Declare the webhook
 
-Set `spec.pipelines.notifications.webhook` on the Team:
+Set `spec.pipelines.notifications.webhook` on the Tenant:
 
 ```yaml
 apiVersion: varroa.dev/v1alpha1
-kind: Team
+kind: Tenant
 metadata:
   name: payments
 spec:
@@ -44,7 +44,7 @@ kubectl -n payments create secret generic payments-webhook \
   --from-literal=hmac-key="$(openssl rand -hex 32)"
 ```
 
-The Team status reports the webhook in its `Notifications` condition:
+The Tenant status reports the webhook in its `Notifications` condition:
 
 - `True` with reason `WebhookReady` means the operator read the key.
 - `False` with reason `WebhookSecretMissing` means the Secret or the key
@@ -98,7 +98,7 @@ The body is a JSON object:
 | `started_at` | no | The start time. Absent when the record has none. |
 | `completed_at` | yes | The completion time. |
 | `duration_ms` | yes | The run duration in milliseconds. Zero when unknown. |
-| `scm_revision` | no | The source revision, when the run reported one. |
+| `scm_revision` | no | The source revision, when the run reported one. For a pull-request build, the revision action hash of the pull request, else the pre-merge commit of the checkout. Never the local merge commit. See [Pull-request revision](commit-status.md#pull-request-revision). |
 | `rejected_signature` | no | The script signature that the sandbox refused. Present only when `result` is `FAILURE` and a refused signature failed the run. |
 | `url` | no | A link to the run page in the dashboard. Absent when the dashboard URL is not set. |
 | `synthetic` | no | `true` for a synthetic delivery. |
@@ -176,10 +176,12 @@ The record store refuses to send to any address that is not global unicast.
 Loopback, link-local, group, and unspecified addresses are not global unicast. A receiver must use an address that the record
 store can reach.
 
-A delivery records the Team incarnation that owned the run when the cell
-claimed it. When you delete a Team and create a new one with the same name,
-the record store drops any pending delivery of the old Team. The new Team's
-receiver gets no deliveries for the old Team's runs.
+A delivery records the Tenant incarnation that owned the run when the cell
+claimed it. When you delete a Tenant and create a new one with the same name,
+the record store drops any pending delivery of the old Tenant. The new Tenant's
+receiver gets no deliveries for the old Tenant's runs.
+
+A run that a cell claimed before the record store knew the Tenant incarnation sends no delivery. Its delivery row has the state `dropped` and names the cause in `last_error`.
 
 Finished delivery rows stay for seven days, then the maintenance round
 deletes them.
@@ -236,9 +238,9 @@ Set the SMTP server on the `CellPool`:
 apiVersion: varroa.dev/v1alpha1
 kind: CellPool
 metadata:
-  name: lts-2-555
+  name: lts-2-580
 spec:
-  profileRef: lts-2-555
+  profileRef: lts-2-580
   mail:
     host: smtp.example.com
     port: 587
@@ -284,7 +286,7 @@ Use the `mail` step in a pipeline to send through the pool login:
 ```groovy
 post {
   failure {
-    mail to: 'team@example.com', subject: "${env.JOB_NAME} failed",
+    mail to: 'tenant@example.com', subject: "${env.JOB_NAME} failed",
          body: "See ${env.BUILD_URL}"
   }
 }

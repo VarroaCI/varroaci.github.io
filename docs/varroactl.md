@@ -50,6 +50,10 @@ Sign in with the browser flow:
 varroactl login --server https://varroa.example.com
 ```
 
+varroactl prints the login URL before it starts the browser. If no browser window opens, paste the URL into a browser on the same computer.
+
+A `--server` value without a scheme gets `https://`, so `--server varroa.example.com` also works. Write `http://` in full for a server without TLS.
+
 For automation, pass an API key through standard input:
 
 ```bash
@@ -65,7 +69,7 @@ A context stores the server, API key, default namespace, and default cluster. It
 
 ```bash
 varroactl config set-context production \
-  --server https://varroa.example.com --namespace team-a --cluster core
+  --server https://varroa.example.com --namespace tenant-a --cluster core
 varroactl config use-context production
 varroactl config get-contexts
 varroactl config current-context
@@ -77,37 +81,42 @@ Use `--context`, `--server`, `--namespace`, or `--cluster` for one command witho
 
 ```bash
 # Inspect controllers.
-varroactl get controllers -n team-a
-varroactl describe controller team-a/controller-a
+varroactl get controllers -n tenant-a
+varroactl describe controller tenant-a/controller-a
 
 # Apply a controller definition and observe it.
 varroactl create controller -f controller.yaml
-varroactl watch -n team-a
+varroactl watch -n tenant-a
 
 # Perform lifecycle work.
-varroactl restart controller team-a/controller-a
-varroactl power controller team-a/controller-a stopped
+varroactl restart controller tenant-a/controller-a
+varroactl power controller tenant-a/controller-a stopped
 
 # Preview a fleet operation before creating it.
 varroactl broodop run restart --selector tier=canary --dry-run
 
 # Trigger a pipeline run and list its builds.
-varroactl run team-a/checkout-api --param ENVIRONMENT=staging
-varroactl builds team-a/checkout-api
+varroactl run tenant-a/checkout-api --param ENVIRONMENT=staging
+varroactl builds tenant-a/checkout-api
 
 # Check a pipeline template marker before it is committed.
-varroactl lint marker --team team-a --marker .varroa/pipeline.yaml
+varroactl lint marker --tenant tenant-a --marker .varroa/pipeline.yaml
+
+# Lint a declarative Jenkinsfile on the tenant's cell before it is committed.
+varroactl lint jenkinsfile --tenant tenant-a --file Jenkinsfile
 
 # List the fleet locks, then force-release a releasing lock that no live pod holds.
-varroactl locks list --team team-a -o wide
-varroactl locks release team-a/deploy-prod --run <run id> --reason "<why>"
+varroactl locks list --tenant tenant-a -o wide
+varroactl locks release tenant-a/deploy-prod --run <run id> --reason "<why>"
 ```
 
 Use [Controller lifecycle operations](operations/lifecycle.md) for state changes, [Brood operations](operations/brood-operations.md) for fleet actions, [Brood schedules](operations/brood-schedules.md) for recurring work, and the [pipelines tutorial](tutorials/pipelines.md) to trigger a run, read a log, and download an artifact.
 
-`run` splits `<team>/<job>` on the first slash. `<job>` may omit or repeat the team's folder segment; both forms reach the same job. It percent-encodes the job path, so slashes reach the server intact. `--param` is repeatable and takes `key=value`. A repeated key is a usage error. `run` mints one client token per invocation, so a retried request runs one build. It prints the run identifier on success. Add `--follow` to wait for the run to appear and stream its log until the run ends. The command exits non-zero when the run's result is not a success.
+`run` and `builds` split `<tenant>/<job>` on the first slash. `<job>` may omit or repeat the tenant's folder segment; both forms reach the same job. Both percent-encode the job path, so slashes reach the server intact. `--param` is repeatable and takes `key=value`. A repeated key is a usage error. `run` mints one client token per invocation, so a retried request runs one build. It prints the run identifier on success. Add `--follow` to wait for the run to appear and stream its log until the run ends. The command exits non-zero when the run's result is not a success.
 
-`lint marker` reads a [pipeline template](config/pipeline-templates.md) marker file, resolves it against the named team's delivered templates, and prints each finding's severity, path, and message. `--marker` defaults to `.varroa/pipeline.yaml`. The command exits zero when the marker is valid and non-zero otherwise, so a pre-commit hook or a pipeline step can gate on it.
+`lint marker` reads a [pipeline template](config/pipeline-templates.md) marker file, resolves it against the named tenant's delivered templates, and prints each finding's severity, path, and message. `--marker` defaults to `.varroa/pipeline.yaml`. The command exits zero when the marker is valid and non-zero otherwise, so a pre-commit hook or a pipeline step can gate on it.
+
+`lint jenkinsfile` reads a Jenkinsfile and sends it to the tenant's cell. The cell runs the Jenkins declarative linter, and a cell-hosted tenant also runs the Varroa cell rules. It prints each error's source, line, column, and message. `--file` defaults to `Jenkinsfile`. The lint writes nothing and never wakes a hibernated cell, so a hibernated or stopped cell answers a refusal. The command exits non-zero when the file has any error or the server refuses the request.
 
 ## Work across clusters
 
@@ -140,7 +149,7 @@ top-level verb `scale`:
 varroactl get cellpools
 varroactl describe cellpool jenkins-lts
 varroactl scale cellpool jenkins-lts --warm 3 --max-cells 8
-varroactl scale cellpool lts-2-570 --cluster east --warm 2
+varroactl scale cellpool lts-2-588 --cluster east --warm 2
 ```
 
 `get cellpools` prints `CLUSTER`, `NAME`, `PROFILE`, `WARM`, `PLACED`, `FREE`, and `READY` for
@@ -186,7 +195,7 @@ A username and password Secret needs the `varroa.dev/allowed-hosts` annotation. 
 
 ```bash
 varroactl export release --version 3.0.0 --values values-prod.yaml \
-  --profile jenkins-version-2-570 --to tar:///transfer/varroa-3.0.0.tar.gz
+  --profile jenkins-version-2-588 --to tar:///transfer/varroa-3.0.0.tar.gz
 
 varroactl import release --from tar:///transfer/varroa-3.0.0.tar.gz \
   --to oci://registry.example.com/varroa --manifest-digest sha256:<digest>
@@ -215,8 +224,8 @@ The `runner` command group adds the registration workflow: `runner register` cre
 and `runner delete` are thin aliases over the noun verbs.
 
 ```bash
-varroactl runner register win-1 --tenant team-a --remote-fs /var/j
-varroactl runner list --tenant team-a
+varroactl runner register win-1 --tenant tenant-a --remote-fs /var/j
+varroactl runner list --tenant tenant-a
 varroactl runner delete win-1
 ```
 

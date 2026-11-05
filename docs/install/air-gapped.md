@@ -18,7 +18,7 @@ The values files choose the image set. They do not choose the configuration that
 varroactl export release \
   --version 3.0.0 \
   --values values-prod.yaml \
-  --profile jenkins-version-2-570 \
+  --profile jenkins-version-2-588 \
   --to tar:///transfer/varroa-3.0.0.tar.gz
 ```
 
@@ -58,7 +58,7 @@ Use `--registry-config` for registry credentials. Use `--insecure` only for plai
 The export does not read these image sources:
 
 - Images in pipeline scripts and in pod template steps.
-- Images in Team and CellPool pod templates that users create through the API.
+- Images in Tenant and CellPool pod templates that users create through the API.
 - Images that plugins pull at run time.
 
 Name a bundle directory with `--bundle-dir` to include the JCasC pod templates that name images. Use `--image` for any other image. The manifest lists these sources under `unseen`. Mirror them by hand.
@@ -128,6 +128,8 @@ A change to `jenkins.upstreamURL` rolls every Connected controller and cell once
 
 The empty value does not change the plugins-init step. That init container still installs plugins from the update center in `ProvisioningDefaults`, or from the in-cluster update center. Set that source as described in [Enable the Offline Update Center](#enable-the-offline-update-center).
 
+plugins-init also reads `plugin-versions.json` for the dependencies and checksums of exact pins. Varroa sets `JENKINS_PLUGIN_INFO` to `ProvisioningDefaults.spec.pluginInfoURL`. Without that value, it uses the in-cluster update center when that center is Ready. With neither, the tool reads `https://updates.jenkins.io/plugin-versions.json`.
+
 The in-cluster update center has its own default host for pull-through. Turn off pull-through as described in [Enable the Offline Update Center](#enable-the-offline-update-center), or set its upstream URLs to your mirror. This value does not change that default.
 
 Varroa sets the runtime update site through JCasC. The site is `ProvisioningDefaults.spec.pluginUpdateCenterURL` when set. Otherwise it is the in-cluster update center, and then `jenkins.upstreamURL`. With none of these, the site list is empty. A `pluginUpdateCenterURL` must end in `update-center.json` or `update-center.actual.json`; Varroa rewrites the second form to the first for Jenkins. Other names do not load tool-installer metadata. The in-cluster update center does not sign its metadata, so Jenkins does not load it. The controller's plugin manager shows no available plugins. Plugins come only from the bundle.
@@ -179,7 +181,7 @@ In another shell:
 
 ```bash
 varroactl import \
-  --from tar:///transfer/plugins-2-570.tar.gz \
+  --from tar:///transfer/plugins-2-588.tar.gz \
   --to uc://localhost:8080
 ```
 

@@ -70,6 +70,7 @@ Wait for all control-plane pods to become `Ready`. NATS cannot start until its v
 | Area | Values |
 |---|---|
 | Namespace scope | `managedNamespaces` |
+| Components | `operator.enabled`, `gateway.enabled`, `bff.enabled`, `frontend.enabled`, `dex.enabled`, `nats.enabled` |
 | Authentication | `auth.*`, `dex.*` |
 | Dashboard routing | `global.domain`, `frontend.host`, `ingress.*` |
 | Control-plane capacity | `operator.*`, `gateway.hpa.*`, `bff.hpa.*` |
@@ -86,10 +87,12 @@ Wait for all control-plane pods to become `Ready`. NATS cannot start until its v
 
 Gateway and BFF HPAs require the Kubernetes metrics API. Telemetry export remains inactive until `telemetry.endpoint` is set.
 
+The BFF and the gateway need the operator in the same release. The BFF reads the `varroa-mite-signing-key` Secret at start, and the gateway reads the `varroa-ca` Secret. Only the operator creates them. Helm refuses `bff.enabled: true` or `gateway.enabled: true` with `operator.enabled: false` at render time. A hive install renders no BFF, so the BFF check does not apply there.
+
 Each `cells.*` value seeds a `CellPool` the operator creates. None of them configures a live pool,
 and an upgrade never rewrites the spec of a pool that already exists. Scale a live pool by editing
 the `CellPool` object. See [Cells and pipelines tenants](../operations/cells.md). Helm refuses a
-`cells.maxTenantsPerCell` below 1 and a `cells.warmPool.perProfile` below 1 at render time. Each
+`cells.maxTenantsPerCell` below 1 or above 64 and a `cells.warmPool.perProfile` below 1 at render time. Each
 of the two must be a whole number that fits a 32-bit integer.
 
 `cells.cellTemplate` seeds the resources and node spread of the cells in a new pool. See
@@ -160,6 +163,8 @@ helm upgrade varroa oci://ghcr.io/varroaci/charts/varroa \
 ```
 
 Verify the Helm revision, control-plane pods, and existing controllers. Upgrading the control plane does not change `Controller.spec.version`.
+
+The 0.7.0 release renames the pipelines tenant objects. An installation with pipelines tenants follows the [0.6 to 0.7 upgrade](../operations/upgrade-0-6-to-0-7.md) before it runs this upgrade.
 
 To keep earlier values, use `--reset-then-reuse-values`. The chart refuses `--reuse-values`, which drops the encryption defaults.
 

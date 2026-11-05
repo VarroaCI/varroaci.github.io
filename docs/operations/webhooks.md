@@ -6,7 +6,7 @@ BFF public host. It is outside `/api/v1` and outside login.
 ## The door URL
 
 ```
-/hibernation/<token>/teams/<team>/queue/<path>
+/hibernation/<token>/tenants/<tenant>/queue/<path>
 ```
 
 `<token>` addresses the tenant. `<path>` selects the forge and the Jenkins endpoint. Any path
@@ -14,10 +14,10 @@ that the door does not serve answers `404`.
 
 Two credentials guard the door. Varroa mints each once, and never regenerates them:
 
-- `status.pipelines.webhookToken` goes in the URL. Only the `Team` object holds it:
+- `status.pipelines.webhookToken` goes in the URL. Only the `Tenant` object holds it:
 
   ```bash
-  kubectl get team payments -o jsonpath='{.status.pipelines.webhookToken}'
+  kubectl get tenant payments -o jsonpath='{.status.pipelines.webhookToken}'
   ```
 
 - `status.pipelines.webhookSecret` proves that the forge sent the body. Set it as the signing
@@ -29,9 +29,9 @@ Two credentials guard the door. Varroa mints each once, and never regenerates th
 |---|---|---|---|
 | GitHub | `github-webhook/` | `X-Hub-Signature-256` (HMAC-SHA256) | `githubPush` |
 | Gitea or Forgejo | `gitea-webhook/post` | `X-Gitea-Signature` (or `X-Forgejo-Signature`), HMAC-SHA256 over the bare hex digest | Gitea SCM source: a `multibranch` or `organizationFolder` item |
-| Gitea or Forgejo | `generic-webhook-trigger/invoke?token=<team>:<name>` | `X-Gitea-Signature` (or `X-Forgejo-Signature`), HMAC-SHA256 over the bare hex digest | `genericTrigger` on a `pipeline` item |
-| GitLab | `generic-webhook-trigger/invoke?token=<team>:<name>` | `X-Gitlab-Token` | `genericTrigger` |
-| Generic | `generic-webhook-trigger/invoke?token=<team>:<name>` | `X-Varroa-Token` | `genericTrigger` |
+| Gitea or Forgejo | `generic-webhook-trigger/invoke?token=<tenant>:<name>` | `X-Gitea-Signature` (or `X-Forgejo-Signature`), HMAC-SHA256 over the bare hex digest | `genericTrigger` on a `pipeline` item |
+| GitLab | `generic-webhook-trigger/invoke?token=<tenant>:<name>` | `X-Gitlab-Token` | `genericTrigger` |
+| Generic | `generic-webhook-trigger/invoke?token=<tenant>:<name>` | `X-Varroa-Token` | `genericTrigger` |
 
 The door identifies the forge from the request headers. A request with `X-Gitea-Event` or
 `X-Forgejo-Event` is Gitea or Forgejo. A request with `X-GitHub-Event` is GitHub. A request with
@@ -55,7 +55,7 @@ The fence has three rules:
 - A `gitea-webhook/` path needs a Gitea or Forgejo delivery. Any other delivery on that path
   answers `400`.
 - A `generic-webhook-trigger/invoke` path needs a `token` query value that starts with
-  `<team>:` and has at least one character after the colon. Otherwise the door answers `400`.
+  `<tenant>:` and has at least one character after the colon. Otherwise the door answers `400`.
 
 The generic path accepts a delivery from any forge, but the forge signature must verify. So a
 Gitea or Forgejo delivery can use `gitea-webhook/` or `generic-webhook-trigger/invoke`. It cannot
@@ -63,7 +63,7 @@ use `github-webhook/`.
 
 The fence keeps one tenant from starting another tenant's jobs. Many tenants share a cell, and
 the generic trigger plugin searches every job on the controller for a matching token. A
-Kubernetes name never contains `:`, so a `<team>:` prefix names exactly one tenant.
+Kubernetes name never contains `:`, so a `<tenant>:` prefix names exactly one tenant.
 
 ## Set up a GitLab project
 
@@ -71,10 +71,10 @@ Kubernetes name never contains `:`, so a `<team>:` prefix names exactly one tena
 2. Set **URL** to the door URL. Add the job token as the `token` query value:
 
    ```text
-   https://<host>/hibernation/<token>/teams/payments/queue/generic-webhook-trigger/invoke?token=payments:deploy
+   https://<host>/hibernation/<token>/tenants/payments/queue/generic-webhook-trigger/invoke?token=payments:deploy
    ```
 
-3. Set **Secret token** to the `webhookSecret` value from the `Team` status.
+3. Set **Secret token** to the `webhookSecret` value from the `Tenant` status.
 4. Select the events to send, then save the webhook.
 
 GitLab sends the secret in `X-Gitlab-Token`. The door verifies it and does not forward it.
@@ -85,11 +85,11 @@ Select the path from the job trigger:
 
 - For a `multibranch` or `organizationFolder` item, use `gitea-webhook/post`.
 - For a `pipeline` item with a `genericTrigger`, use
-  `generic-webhook-trigger/invoke?token=<team>:<name>`.
+  `generic-webhook-trigger/invoke?token=<tenant>:<name>`.
 
 | Field | Value |
 |---|---|
-| Target URL | `https://<host>/hibernation/<token>/teams/<team>/queue/<path>` |
+| Target URL | `https://<host>/hibernation/<token>/tenants/<tenant>/queue/<path>` |
 | Content type | `application/json` |
 | Secret | The value of `status.pipelines.webhookSecret` |
 | Events | Push, and pull request for a source job |
@@ -122,7 +122,7 @@ curl -i -X POST \
   -H "X-Varroa-Token: $SECRET" \
   -H "Content-Type: application/json" \
   --data '{"ref":"refs/heads/main"}' \
-  "https://<host>/hibernation/<token>/teams/payments/queue/generic-webhook-trigger/invoke?token=payments:deploy"
+  "https://<host>/hibernation/<token>/tenants/payments/queue/generic-webhook-trigger/invoke?token=payments:deploy"
 ```
 
 Expect `202 Accepted`. Then the `payments` folder starts the job, if its `genericTrigger`
@@ -132,7 +132,7 @@ matches the request.
 
 A job starts on a generic delivery when its `items.yaml` declares a `genericTrigger`. The
 `token` must equal the value that the door call carries in `?token=`. It must also start with
-the team name and a colon. Varroa rejects a tenant manifest with another prefix:
+the tenant name and a colon. Varroa rejects a tenant manifest with another prefix:
 
 ```yaml
 triggers:
@@ -156,6 +156,46 @@ The card does not show the token.
 The baseline lock pins `generic-webhook-trigger` and `github-checks`. An air-gapped install must
 pre-seed both plugins in the update center. See [Update center](update-center.md).
 
+## Re-run from GitHub
+
+The door consumes three GitHub events itself. It answers `202` after the signature check. It
+never buffers these events, and it never sends them to Jenkins:
+
+- `issue_comment` starts a run from a pull-request comment.
+- `check_run` starts a run when a user selects **Re-run** on a check.
+- `check_suite` starts runs when a user selects **Re-run all checks**.
+
+The tenant sets the rules. See
+[Start a run from a pull-request comment or a check re-run](multi-tenancy.md#start-a-run-from-a-pull-request-comment-or-a-check-re-run).
+
+A comment starts a run only when all of these hold:
+
+- The comment is new. An edit starts nothing.
+- The comment is on a pull request, not on an issue.
+- The trimmed comment body matches `commentPattern`.
+- The author association is `OWNER`, `MEMBER`, or `COLLABORATOR`.
+- The forge reports `write` or `admin` permission for the commenter on the repository.
+
+The permission read uses a tenant credential that can read the repository. Use a username and
+password credential or a secret-text credential. Its `varroa.dev/allowed-hosts` annotation must
+name the forge host. A tenant that holds only a `githubApp` credential refuses every comment.
+
+A check re-run reaches the door only when the GitHub App that created the check sends it. See
+[Re-run a check](commit-status.md#re-run-a-check).
+
+This delivery sends a comment that matches the pattern `^/retest$`:
+
+```bash
+curl -i -X POST \
+  -H "X-GitHub-Event: issue_comment" \
+  -H "X-Hub-Signature-256: sha256=$(openssl dgst -sha256 -hmac "$SECRET" -hex comment.json | cut -d' ' -f2)" \
+  --data-binary @comment.json \
+  "https://<host>/hibernation/<token>/tenants/payments/queue/github-webhook/"
+```
+
+Here `comment.json` holds an `issue_comment` payload with `action` set to `created`. Expect
+`202 Accepted`, then a run of the pull-request job in the `payments` folder.
+
 ## Buffering
 
 A delivery buffers for up to one hour, so a tenant that moves cells in that hour still
@@ -173,8 +213,8 @@ curl -i -X POST \
   -H "X-GitHub-Event: push" \
   -H "X-Hub-Signature-256: sha256=$(openssl dgst -sha256 -hmac "$SECRET" -hex body.json | cut -d' ' -f2)" \
   --data-binary @body.json \
-  "https://<host>/hibernation/<token>/teams/payments/queue/github-webhook/"
+  "https://<host>/hibernation/<token>/tenants/payments/queue/github-webhook/"
 ```
 
 Expect `202 Accepted`, then a build in the `payments` folder. A push of an already built
-revision starts no build.
+revision starts no build. A push to a new repository or branch starts one build.

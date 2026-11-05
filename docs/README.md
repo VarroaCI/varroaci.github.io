@@ -35,6 +35,7 @@ Commands use `kubectl` and `helm`. Replace values in `<angle-brackets>` before r
 - [Operate a run](tutorials/run-operations.md)
 - [Move a Jenkinsfile onto a cell](tutorials/move-to-a-cell.md)
 - [Work with multibranch jobs](tutorials/multibranch.md)
+- [Propose a pipeline from a repository](tutorials/propose-a-pipeline.md)
 
 ## Configuration
 
@@ -66,10 +67,13 @@ Commands use `kubectl` and `helm`. Replace values in `<angle-brackets>` before r
 - [Agents overview](agents/overview.md)
 - [Connect a client](agents/connecting.md)
 - [Assistant](agents/assistant.md)
+- [Tenant agents](agents/tenant-agents.md)
+- [Tenant agent safety](agents/safety.md)
 - [Identity and auditing](agents/identity.md)
 - [Jenkins controller tools](agents/jenkins-tools.md)
 - [Tool reference](agents/tools.md)
 - [Write through MCP](agents/writing.md)
+- [Operator guide for agents](agents/guide.md)
 
 ## Operations
 
@@ -101,6 +105,7 @@ Commands use `kubectl` and `helm`. Replace values in `<angle-brackets>` before r
 - [Artifact credentials](operations/artifact-credentials.md)
 - [Notifications](operations/notifications.md)
 - [NATS upgrades](operations/nats-upgrades.md)
+- [Upgrade 0.6 to 0.7: the tenant rename](operations/upgrade-0-6-to-0-7.md)
 - [Observability](operations/observability.md)
 - [Troubleshooting](operations/troubleshooting.md)
 

@@ -19,8 +19,12 @@ Unknown kinds reject the bundle. Unknown fields are ignored.
 
 Every `multibranch` job and every `organizationFolder` item carries the
 `SkipInitialBuildOnFirstBranchIndexing` build strategy. A branch-indexing scan creates or
-updates a branch's job without starting a build. Start it from the dashboard, or push a
-commit.
+updates a branch's job without starting a build. The cell starts one scan when it creates
+or changes a `multibranch` or `organizationFolder` item. Start a later scan from the
+dashboard, or push a commit.
+
+A push that creates a branch job builds that branch once. A scan still builds nothing.
+A push that arrives during a scan can be dropped; push again.
 
 A `JenkinsVersionProfile` that replaces the default plugin set must still pin
 `basic-branch-build-strategies`. The operator refuses a manifest declaring either kind
@@ -201,10 +205,10 @@ only) stops that job's run-state replication entirely:
 
 Trigger types are `cron`, `pollSCM`, `githubPush` (a push webhook through the `github`
 plugin), [`varroaUpstream`](cross-tenant-pipelines.md), and `genericTrigger` (a webhook call
-that carries `?token=<team>:<name>`; see [Tenant webhooks](../operations/webhooks.md)). `triggers` is valid on
+that carries `?token=<tenant>:<name>`; see [Tenant webhooks](../operations/webhooks.md)). `triggers` is valid on
 `pipeline` and `freeStyle` items. A `pipeline` item also accepts `properties[].pipelineTriggers`,
 merged with `triggers`. A job holds one trigger of each type. `cron.spec` and `genericTrigger.token`
-must not be empty. A tenant's `genericTrigger.token` must start with `<team>:`.
+must not be empty. A tenant's `genericTrigger.token` must start with `<tenant>:`.
 
 A cell rewrites each job from `items.yaml` after a restart. A Jenkinsfile `triggers {}` block
 then has no effect until the job builds again. Declare a schedule in `items.yaml`.
@@ -225,6 +229,11 @@ A held tenant's folder stays as it is.
 Unsafe removals appear in `status.pendingItemDeletions` and need the `approve-deletion`
 capability. A running job or unreadable build state defers deletion.
 Deletion also removes build history.
+An approval keeps the entry until the mite confirms the delete.
+A failed delete keeps the entry and shows the error in `approval.error`. Approve again to retry.
+An items apply that stops before the remove step keeps every pending entry. An unreadable managed-items cache skips the remove step, so it also keeps every entry.
+While a deletion is deferred, each push checks the items again. A deferred item that has no running build is then deleted.
+An approved deletion also removes the item, and every item below it, from the mite's record of managed items. A later apply does not delete an item that you create again at that path.
 
 ## GitHub sources
 
@@ -393,7 +402,8 @@ Job DSL seed jobs are not supported on a cell. Declare every job in `items.yaml`
 | Unknown kind | Use one of the five supported values |
 | Old item stays after a rename | A non-cell controller keeps undeclared items. Delete it from the Jenkins UI |
 | Setting is absent | Field spelling and indentation |
-| Deletion is pending | Pending path, build state, and approval |
+| Deletion is pending | Pending path, build state, approval, and approval error |
 | Kind is unsupported | Keep it unmanaged |
 | Schedule stops after a cell restart | Move the Jenkinsfile trigger to `triggers` |
 | Condition reason is `ItemsRefused` | Read the condition message. Add the missing plugin or credential |
+| Items section fails and names `managed-items.json` | The mite cannot read or write its record of managed items. The items section in `status.lastApplyResult` names the file. Fix the state directory. If the file is corrupt, delete it. The next apply writes every item again. It cannot delete items that the lost record named |

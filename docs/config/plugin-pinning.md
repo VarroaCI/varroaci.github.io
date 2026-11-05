@@ -33,8 +33,8 @@ is not a conflict. `PluginPinConflict` does not change what gets installed.
 plugins:
   - artifactId: sonar
     version: "2.17.3"
-  - artifactId: timestamper
-    version: "1.28"
+  - artifactId: ansicolor
+    version: "542.v03d235fee02d"
 ```
 
 Commit the file that the bundle manifest names, then wait for reconciliation.
@@ -46,15 +46,15 @@ apiVersion: varroa.dev/v1alpha1
 kind: Controller
 metadata:
   name: demo
-  namespace: teams-platform
+  namespace: tenants-platform
 spec:
   pluginSpec:
     policy: pinned
     entries:
       - artifactId: sonar
         version: "2.17.3"
-      - artifactId: timestamper
-        version: "1.28"
+      - artifactId: ansicolor
+        version: "542.v03d235fee02d"
 ```
 
 Include every required non-core plugin: these entries replace the bundle
@@ -70,7 +70,7 @@ apply endpoint or dashboard.
 Check the pending change before approval:
 
 ```bash
-kubectl get controller demo -n teams-platform \
+kubectl get controller demo -n tenants-platform \
   -o jsonpath='{.status.pendingPluginRoll}{"\n"}'
 ```
 

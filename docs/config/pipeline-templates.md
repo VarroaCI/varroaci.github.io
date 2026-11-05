@@ -201,6 +201,8 @@ from the branch tip. Varroa reuses the trust decision a multibranch project alre
 | Trust users with write permission | A writer's or an admin's pull request uses its own marker; anyone else's uses the target branch's marker |
 | Trust everyone | Every pull request uses its own marker |
 
+A run that a re-run request starts keeps the fork trust decision of its branch source.
+
 A fork pull request that adds the very first marker still gets a job at indexing time, because
 indexing only tests that the tip carries a marker. Its first build fails, because the trusted
 revision, which is the target branch, carries no marker yet. The console names the marker path and
@@ -225,10 +227,10 @@ input from `spec.parameters` and `varroaParams` only.
 ## Check a marker before you commit it
 
 ```bash
-varroactl lint marker --team payments --marker .varroa/pipeline.yaml
+varroactl lint marker --tenant payments --marker .varroa/pipeline.yaml
 ```
 
-The command posts the marker to the team's own template set and prints each finding's severity,
+The command posts the marker to the tenant's own template set and prints each finding's severity,
 path, and message. It exits zero when the marker is valid, and non-zero otherwise, so a pre-commit
 hook or a pipeline step can gate on it. It contacts no Jenkins controller, so it works even while
 one is down. See [varroactl](../varroactl.md) for the full command reference.

@@ -15,11 +15,13 @@ A build check fails when a source adds a host that this page does not list.
 | Destination | Purpose | Protocol | Control | Can a deny-all cluster disable it? |
 | --- | --- | --- | --- | --- |
 | updates.jenkins.io | Find newer LTS patches and resolve candidate plugin sets for the upgrade tracker. | HTTPS 443 | jenkins.upstreamURL | Yes. Set jenkins.upstreamURL to "". |
-| updates.jenkins.io (update-center metadata) | Read update-center metadata when pull-through uses the default upstream. | HTTPS 443 | updateCenter.pullThrough.upstreamURL | Yes. Pull-through is off by default. Keep updateCenter.pullThrough.enabled false. |
+| updates.jenkins.io (update-center metadata) | Read tiers.json to choose the LTS metadata sources that pull-through reads. | HTTPS 443 | updateCenter.pullThrough.upstreamURL | Yes. Pull-through is off by default. Keep updateCenter.pullThrough.enabled false. |
 | Git remotes of catalog sources and bundle inputs | Clone catalog sources and git bundle inputs. | HTTPS 443 or SSH 22 | CatalogSource.spec.repoURL and ComposedBundle gitSource inputs | Yes. Do not declare the source or the input. |
 | OCI registries of catalog sources and bundle inputs | Pull catalog and bundle artifacts. | HTTPS 443 | CatalogSource.spec.ociRef and ComposedBundle ociSource inputs | Yes. Do not declare the source or the input. |
-| api.github.com | Read a proposed repository and open a pull request on GitHub. | HTTPS 443 | the repo field of POST /pipelines/{team}/propose and of the open_pull_request tool, and a tenant credential's varroa.dev/allowed-hosts | Yes. Create no tenant credential that lists github.com. |
-| Forge API of a proposed repository | Read a proposed repository and open a pull request on a Gitea-API forge. | HTTPS 443 | the repo field of POST /pipelines/{team}/propose and of the open_pull_request tool, and a tenant credential's varroa.dev/allowed-hosts | Yes. Create no tenant credential whose varroa.dev/allowed-hosts lists a non-GitHub forge host. |
+| api.github.com | Read a proposed repository and open a pull request on GitHub. | HTTPS 443 | the repo field of POST /pipelines/{tenant}/propose and of the open_pull_request tool, and a tenant credential's varroa.dev/allowed-hosts | Yes. Create no tenant credential that lists github.com. |
+| Forge API of a proposed repository | Read a proposed repository and open a pull request on a Gitea-API forge. | HTTPS 443 | the repo field of POST /pipelines/{tenant}/propose and of the open_pull_request tool, and a tenant credential's varroa.dev/allowed-hosts | Yes. Create no tenant credential whose varroa.dev/allowed-hosts lists a non-GitHub forge host. |
+| Issue repository named by a TenantAgent (spec.outputs.issues.repo) | Open a GitHub or Gitea issue for a Tenant agent session. | HTTPS 443 | TenantAgent spec.outputs.issues.repo and spec.outputs.issues.forge | Yes. Leave spec.outputs.issues unset on every TenantAgent. |
+| Repository of a CatalogSource (spec.repoURL) | Read the Tenant agent instructions file, and any repository that a session names with read_repo_file. | HTTPS 443 | CatalogSource spec.repoURL and the repo argument of read_repo_file | Yes. Leave TenantAgent spec.instructions unset and keep agentRunner.enabled false. |
 
 ## Gateway
 
@@ -51,7 +53,14 @@ A build check fails when a source adds a host that this page does not list.
 | Record store (external Postgres) | Write build history and the build-number ledger. | PostgreSQL 5432 | recordStore.postgres.mode and host | No, while the record store runs. |
 | S3-compatible blob store (recordStore.blobs.s3.url) | Store build logs and artifacts in object storage. | HTTPS 443 | recordStore.blobs.mode and s3.url | Yes. Set recordStore.blobs.mode to postgres. In s3 mode, networkPolicy.recordStoreBlobEgress.cidrs must name the store. |
 | STS endpoint (recordStore.blobs.s3.artifactSTS.endpoint) | Issue a scoped artifact credential for each cell. | HTTPS 443 | recordStore.blobs.s3.artifactSTS.endpoint | Yes. Set artifactSTS.enabled to false. |
-| Completion webhook URL of a Team | Post a signed message when a tenant run completes. | HTTPS 443 | Team spec.pipelines.notifications.webhook and networkPolicy.recorderWebhookEgress | Yes. Leave the webhook unset. The webhook egress rule is off by default. |
+| Completion webhook URL of a Tenant | Post a signed message when a tenant run completes. | HTTPS 443 | Tenant spec.pipelines.notifications.webhook and networkPolicy.recorderWebhookEgress | Yes. Leave the webhook unset. The webhook egress rule is off by default. |
+
+## Tenant agent runner
+
+| Destination | Purpose | Protocol | Control | Can a deny-all cluster disable it? |
+| --- | --- | --- | --- | --- |
+| Configured assistant provider base URLs | Send Tenant agent session requests to the configured model provider. | HTTPS 443 | assistant.providers[].baseURL | Yes. Keep agentRunner.enabled false. |
+| api.anthropic.com | Send Tenant agent session requests to the Anthropic Messages API when a provider of kind anthropic leaves baseURL empty. | HTTPS 443 | assistant.providers[].baseURL (the adapter default when it is empty) | Yes. Keep agentRunner.enabled false. |
 
 ## Mite
 
@@ -68,6 +77,7 @@ A build check fails when a source adds a host that this page does not list.
 | uplink.jenkins.io | Jenkins core sends server telemetry when the usage setting is on. | HTTPS 443 | None needed | Yes. Off on every controller: the JVM starts with -Dhudson.model.UsageStatistics.disabled=true. |
 | archives.jenkins.io | plugins-init falls back to the archive for each failed plugin download. | HTTPS 443 | None | No. The plugins-init script always runs. |
 | Plugin update center (plugins-init) | Download plugins from the update center named in the JENKINS_UC variables. | HTTPS 443 | ProvisioningDefaults and the in-cluster update center | Yes, when an in-cluster update center serves every plugin. Otherwise No. |
+| updates.jenkins.io (plugins-init plugin info) | plugins-init reads plugin-versions.json for the dependencies and checksums of exact pins. | HTTPS 443 | ProvisioningDefaults pluginInfoURL or the in-cluster update center | Yes. Enable the in-cluster update center, or set pluginInfoURL to a mirror. |
 | OIDC issuer (bundle variable) | The OIDC plugin discovers the sign-in provider. | HTTPS 443 | auth.oidc.issuer | Yes, with a local issuer (auth.mode local or ldap). |
 | Gateway API key verification | Check an API key against the gateway inside the cluster. | HTTPS 9092 | Operator endpoint setting (VARROA_APIKEY_VERIFY_URL overrides it) | Not applicable. The gateway runs inside the cluster. |
 | CellPool library remotes | Clone trusted shared libraries into each cell of a pool. | HTTPS 443 or SSH 22 | CellPool spec.libraries | Yes. Remove the libraries from the pool. |

@@ -12,7 +12,7 @@ files.
 
 ```bash
 varroactl export plugins \
-  --profile jenkins-version-2-555 \
+  --profile jenkins-version-2-580 \
   --to oci://ghcr.io/varroaci/plugin-pack
 ```
 
@@ -23,7 +23,8 @@ not require update-center pull-through.
 Destinations without an explicit OCI tag receive a floating profile tag and a
 content-addressed tag containing the lock hash. An explicit tag writes only that tag.
 Export fails when a plugin checksum cannot be resolved or verified.
-A plugin at `latest`, or with no version in `--plugins-file`, resolves to a concrete version before download. For a profile, the newest version that the profile's core runs is used. In offline mode, the newest listed version is used. Export fails when no metadata source lists a usable version.
+A plugin at `latest`, or with no version in `--plugins-file`, resolves to a concrete version before download. For a profile, the newest version that the profile's core runs is used. For a profile, the export reads the LTS metadata of the highest core tier at or below the profile core. It reads the tier list from `tiers.json` under the download base. When that read fails, it uses the profile core. In offline mode, the newest listed version is used. Export fails when no metadata source lists a usable version.
+A metadata source that fails is not fetched again during the same export.
 
 ## Export one addon
 
@@ -46,7 +47,7 @@ Sources and destinations support `oci://`, `dir://`, and `tar://`:
 
 ```bash
 varroactl import \
-  --from oci://ghcr.io/varroaci/plugin-pack:jenkins-version-2-555 \
+  --from oci://ghcr.io/varroaci/plugin-pack:jenkins-version-2-580 \
   --to dir:///tmp/plugin-pack
 ```
 
@@ -55,7 +56,7 @@ Upload to an update center with a destination-only `uc://` URL:
 ```bash
 export VARROACTL_UC_TOKEN='<import-token>'
 varroactl import \
-  --from tar:///tmp/plugin-pack-2-555.tar.gz \
+  --from tar:///tmp/plugin-pack-2-580.tar.gz \
   --to uc://update-center.example.com
 ```
 

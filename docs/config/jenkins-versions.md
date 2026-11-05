@@ -20,8 +20,8 @@ track a moving latest image. For an LTS-line profile, `resolveVersion` selects
 the exact patch release deployed and used for plugin resolution.
 
 ```bash
-kubectl patch controller demo -n teams-platform --type merge \
-  -p '{"spec":{"version":"2.555"}}'
+kubectl patch controller demo -n tenants-platform --type merge \
+  -p '{"spec":{"version":"2.580"}}'
 ```
 
 Version changes follow the controller's reconciliation policy and may require
@@ -53,6 +53,12 @@ yet be available. Controllers pinned to an LTS line covered by a default
 profile fall back to the embedded plugin-lock baseline until the profile
 seeds, then resolve normally.
 
+An operator upgrade can drop a default profile. The seeder does not delete the old profile or its pluginset ConfigMap. Controllers, cell pools, and tenants that name the old profile keep running on it. Move each of them to a current profile, then delete the old profile and its ConfigMap.
+
+## Supported floor
+
+The supported floor is the oldest Jenkins core that the embedded default profiles deploy. The operator computes it at build time from those profiles. A controller whose core is below the floor is refused at provisioning and at a version roll. Its `VersionUpgradeBlocked` condition is `True` with reason `CoreBelowSupportedFloor`. The running pod is not changed. A brood upgrade whose `targetVersion` matches a profile, but resolves below the floor, fails with reason `TargetVersionBelowFloor`. The `varroa-mite-auth` plugin builds against the current LTS core, so a controller on an older core cannot run it.
+
 ## Create a profile
 
 Create a ConfigMap in the operator namespace. Its `plugins.yaml` must contain a
@@ -62,7 +68,7 @@ fully resolved closure with exact versions:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: jenkins-2-555-pluginset
+  name: jenkins-2-580-pluginset
   namespace: varroa-system
 data:
   plugins.yaml: |
@@ -81,14 +87,14 @@ Then create the cluster-scoped profile:
 apiVersion: varroa.dev/v1alpha1
 kind: JenkinsVersionProfile
 metadata:
-  name: jenkins-version-2-555
+  name: jenkins-version-2-580
 spec:
-  version: "2.555"
-  resolveVersion: "2.555.3"
+  version: "2.580"
+  resolveVersion: "2.580.2"
   channel: lts
   recommended: true
   pluginSetRef:
-    name: jenkins-2-555-pluginset
+    name: jenkins-2-580-pluginset
   jcasc:
     content: |
       unclassified:

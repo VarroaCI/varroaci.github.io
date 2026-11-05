@@ -317,6 +317,7 @@ export const NAV = {
   "tutorials/run-operations.md": { label: "Operate a run", order: 4 },
   "tutorials/move-to-a-cell.md": { label: "Move to a cell", order: 5 },
   "tutorials/multibranch.md": { label: "Multibranch jobs", order: 6 },
+  "tutorials/propose-a-pipeline.md": { label: "Propose a pipeline", order: 7 },
 
   "config/composed-bundles.md": { label: "Composed bundles", order: 1 },
   "config/casc-catalog.md": { label: "CasC catalog", order: 2 },
@@ -339,15 +340,17 @@ export const NAV = {
   "security/headless-controllers.md": { label: "Headless controllers", order: 7 },
   "security/outbound-connections.md": { label: "Outbound connections", order: 8 },
 
-  // Order follows the Agents section table. The Team agent pages take orders 4
-  // and 5 when they exist.
+  // Order follows the Agents section table.
   "agents/overview.md": { label: "Overview", order: 1 },
   "agents/connecting.md": { label: "Connecting a client", order: 2 },
   "agents/assistant.md": { label: "Assistant", order: 3 },
-  "agents/identity.md": { label: "Identity & auditing", order: 4 },
-  "agents/jenkins-tools.md": { label: "Jenkins controller tools", order: 5 },
-  "agents/tools.md": { label: "Tool reference", order: 6 },
-  "agents/writing.md": { label: "Writing through MCP", order: 7 },
+  "agents/tenant-agents.md": { label: "Tenant agents", order: 4 },
+  "agents/safety.md": { label: "Tenant agent safety", order: 5 },
+  "agents/identity.md": { label: "Identity & auditing", order: 6 },
+  "agents/jenkins-tools.md": { label: "Jenkins controller tools", order: 7 },
+  "agents/tools.md": { label: "Tool reference", order: 8 },
+  "agents/writing.md": { label: "Writing through MCP", order: 9 },
+  "agents/guide.md": { label: "Operator guide", order: 10 },
 
   "operations/reconciliation.md": { label: "Reconciliation", order: 1 },
   "operations/lifecycle.md": { label: "Lifecycle", order: 2 },
@@ -380,6 +383,7 @@ export const NAV = {
   "operations/nats-upgrades.md": { label: "NATS upgrades", order: 29 },
   "operations/observability.md": { label: "Observability", order: 30 },
   "operations/troubleshooting.md": { label: "Troubleshooting", order: 31 },
+  "operations/upgrade-0-6-to-0-7.md": { label: "Upgrade 0.6 to 0.7", order: 32 },
 
   // "API & CLI" is an explicit-link group in astro.config.mjs, so these two
   // need an entry for coverage but their label/order are not consumed.

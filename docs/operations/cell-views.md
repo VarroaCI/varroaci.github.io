@@ -36,9 +36,11 @@ A tenant links to its pipelines page only for a caller who may read that tenant.
 
 The panel renders the cell usage read: the tenant cap, the free slots, the queue length, and the per-tenant counts with their totals. The counts come from the build records, while the page header reports the Jenkins instance, so the two can differ.
 
+When the usage read fails, the panel names the cause in place of the counts. An unreachable record store gets a Retry button.
+
 ### Permissions
 
-The panel lists one block for each tenant, with the subjects, the pipelines verbs, and the job globs of each grant, plus the tenant's generated Jenkins item role and its folder pattern. It edits no binding, and a link opens the Access page. A tenant that no binding and no Team membership reaches says so.
+The panel lists one block for each tenant, with the subjects, the pipelines verbs, and the job globs of each grant, plus the tenant's generated Jenkins item role and its folder pattern. The panel also lists the generated member roles of each tenant, with the folder pattern, the subjects, and the permissions of each role. It edits no binding, and a link opens the Access page. A tenant that no binding and no Tenant membership reaches says so. Cluster-wide bindings reach every tenant, so the panel lists them once, above the tenant blocks. On a member cell, a `federatedBinding` row with `allTenants: true` also reaches every tenant. The panel lists that row once in the same section. Each tenant block lists only the grants that reach that tenant alone.
 
 ### Script approvals
 
@@ -49,7 +51,7 @@ The panel lists the script signatures that the sandbox refused in this cell and 
 Open `/cells`. The page and its navigation row need cluster-wide `cellpools:read`. A namespace-scoped grant admits neither.
 
 The page renders one block for each cell pool of each cluster. The block head names the cluster
-and the pool, for example `east / lts-2-570`. Each block states:
+and the pool, for example `east / lts-2-588`. Each block states:
 
 | Value | Meaning |
 |---|---|
@@ -57,18 +59,18 @@ and the pool, for example `east / lts-2-570`. Each block states:
 | Placed cells | Cells that hold at least one tenant |
 | Unready cells | Cells whose `CellReady` condition is not True |
 | Free slots on placed cells | The spare capacity of the placed cells only |
-| Max cells | The cap on the pool's cells, placed included |
-| Pool ready | The `PoolReady` condition and its reason |
+| Max cells | The cap on the pool's cells, placed included. **No limit** when the cap is unset or 0. |
+| Pool ready | The `PoolReady` condition and its reason. A pool that is not ready shows a warning band with the condition message. |
 
 The warm-cell count and the free-slot count measure different things. Do not add them.
 
-A table under each block lists that pool's cells: the cells of the block's cluster whose pool label names the block's pool. Each row links to that cell's Cell tab. Cell, Phase, Age, and Unready since come from the controllers list. Tenants over cap, Queue, Runs 24 h, and Failures 24 h come from the batch cell usage read, one read for each cluster. A cell name is unique inside one cluster only, so the page joins on the cluster, the namespace, and the name. A cell whose cluster answered no read shows **not available**, which is not a count of zero. A pool that owns no cell states the reason.
+A table under each block lists that pool's cells: the cells of the block's cluster whose pool label names the block's pool. Each row links to that cell's Cell tab. Cell, Phase, Age, and Unready since come from the controllers list. Tenants / cap, Queue, Runs 24 h, and Failures 24 h come from the batch cell usage read, one read for each cluster. A cell name is unique inside one cluster only, so the page joins on the cluster, the namespace, and the name. A cell whose cluster answered no read shows **not available**, which is not a count of zero. A pool that owns no cell states the reason.
 
 ## The scale control
 
 Each pool block carries an inline scale control for a caller who holds `cellpools:update`. Every other caller sees no control at all.
 
-The control edits `warm` and `maxCells`. Press **Apply** to write them. The write goes to the pool on the block's own cluster, and the operator of that cluster applies it. The write carries only the dial you changed, so another operator's value is kept, and an Apply with no change sends nothing.
+The control edits `warm` and `maxCells`. Press **Apply** to write them. The write goes to the pool on the block's own cluster, and the operator of that cluster applies it. The write carries only the dial you changed, so another operator's value is kept, and an Apply with no change sends nothing. An empty Max cells field means no limit. It writes 0.
 
 A new `warm` below the reported warm-cell count drains free cells, and the control asks for a confirm that names both numbers. A drain never touches a cell that holds a tenant.
 
@@ -89,8 +91,9 @@ The operator sets `status.cell.evacuate` when a cell stays unready past twice it
 | Missing | Result |
 |---|---|
 | Cluster-wide `cellpools:read` | The `/cells` route and its navigation row do not render |
-| `controllers:read` on a cell | That cell has no row, and the table says it lists readable cells only |
-| The build record store | The batch read answers `503`, and the table drops its four usage columns |
+| `controllers:read` on a cell | That cell has no row, and the page says it lists readable cells only |
+| The build record store, when it is off | The batch read answers `503` with no code, and the table drops its four usage columns |
+| The build record store, when it does not answer | The batch read answers `503` with the code `record_store_unreachable`. The table keeps its columns and marks the counts of that cluster "not available". A notice offers Retry |
 | An answer from a member cluster | The page names that cluster and the error, and shows no block for its pools |
 | Cluster-wide `rolebindings:read` | The Permissions panel names the missing verb and lists no grant |
 
@@ -111,10 +114,15 @@ The read applies the controller read check first, then cluster-wide `rolebinding
 | `200` | Both gates pass |
 | `403` | The controller check passes and the caller holds no `rolebindings:read` |
 | `404` | No such controller, a controller that is not a cell, or a refused controller check |
+| `502` | The cell runs on a member cluster and that cluster's operator does not answer |
 
 One code for the three `404` conditions confirms no cell's existence.
 
-The RBAC resolver backs the read, so it answers no `503`. It returns at most 50 grants for each tenant, narrowing grants first, and flags a cut list as `truncated`.
+The read touches no record store, so it answers no `503`. It returns at most 50 grants for each tenant, narrowing grants first, and flags a cut list as `truncated`.
+
+A cell on a member cluster answers from that member's operator. The member operator reads its own Tenant and binding state, the state the member cell renders. Core tenant-scoped bindings appear there as `federatedBinding` rows. Each row names its JenkinsRoleBinding copy in `binding`, its source VarroaRole in `roleRef`, and its core VarroaRoleBindings in `federatedFrom`. A core cluster-wide binding with pipelines write appears through its all-tenants copy, as described in `cells.md`. The member operator sets `allTenants: true` on that row. Every other row omits the field.
+
+Each tenant also carries `memberRoles`, the generated Jenkins member roles. This list is never capped. Its `User` subjects include the principal of each person that the `User` objects name. On a member cluster, the list shows the member roles that the member operator renders.
 
 ## Refresh
 

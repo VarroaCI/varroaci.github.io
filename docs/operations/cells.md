@@ -1,6 +1,6 @@
 # Cells and Pipelines Tenants
 
-A cell is a shared Jenkins controller that runs many teams' pipelines.
+A cell is a shared Jenkins controller that runs many tenants' pipelines.
 
 ## What a cell is
 
@@ -48,6 +48,9 @@ spec:
     maxTenants: 10
 ```
 
+`maxTenants` is an integer from 0 to 64; the CRD refuses a value outside that range. Zero
+resolves through the cell's pool `maxTenantsPerCell`, then the chart's `cells.maxTenantsPerCell`.
+
 **Verify:**
 
 ```bash
@@ -63,21 +66,21 @@ A `CellPool` sizes its cells. `maxRunsPerTenant` caps a tenant's builds per cell
 takes its template from `cells.cellTemplate`. See [Cell pools](cell-pools.md),
 [Cell views](cell-views.md).
 
-## Make a Team a pipelines tenant
+## Make a Tenant a pipelines tenant
 
 ```yaml
 apiVersion: varroa.dev/v1alpha1
-kind: Team
+kind: Tenant
 metadata:
   name: payments
 spec:
-  namespaces: ["team-payments"]
+  namespaces: ["tenant-payments"]
   pipelines:
     profile: jenkins-lts
-    agentNamespace: team-payments
+    agentNamespace: tenant-payments
     composedBundleRef:
       name: payments-pipelines
-      namespace: team-payments
+      namespace: tenant-payments
 ```
 
 `pipelines.agentNamespace` must be one of `spec.namespaces`, and Varroa must manage it.
@@ -90,14 +93,14 @@ pool whose `maxTenantsPerCell` is 1.
 **Verify:**
 
 ```bash
-kubectl get team payments -o jsonpath='{.status.conditions[?(@.type=="Placed")]}'
+kubectl get tenant payments -o jsonpath='{.status.conditions[?(@.type=="Placed")]}'
 ```
 
 Expect `"status":"True","reason":"TenantPlaced"`.
 
 ## What composes a tenant
 
-- **Folder.** The tenant's `items.yaml` goes under one top-level folder named for the `Team`.
+- **Folder.** The tenant's `items.yaml` goes under one top-level folder named for the `Tenant`.
   The operator ignores `plugins.yaml`, `rbac.yaml`, and `jenkins.yaml` except its
   [pod templates](tenant-pod-templates.md). A job that the bundle drops leaves the
   folder; its next trigger fails with `JOB_NOT_FOUND`. An empty `items` list drops every job in the folder. See
@@ -111,15 +114,32 @@ Expect `"status":"True","reason":"TenantPlaced"`.
     leaves the fragment; the tenant's other templates stay;
   - the bundle is missing or not built.
 
-  The `Team` reports `TenantWarnings=True`, reason `ItemsHeld`. A new held tenant has no
+  The `Tenant` reports `TenantWarnings=True`, reason `ItemsHeld`. A new held tenant has no
   folder until fixed. A folder held on any member cell shows no job.
-- **Tenant warnings.** `TenantWarnings` folds all member cells; several-cell lines name cells. When Jenkins refuses a tenant item, the Team reports `TenantWarnings=True` with the reason `ItemsApplyFailed`. The message names the item and the Jenkins error. The next successful items apply clears it.
+- **Tenant warnings.** `TenantWarnings` folds all member cells; several-cell lines name cells. When Jenkins refuses a tenant item, the Tenant reports `TenantWarnings=True` with the reason `ItemsApplyFailed`. Other tenants still apply. The cell reports those other tenants as applied. The message names each refused item and its error. A successful items apply clears it.
+  A new cell pod drops a refused tenant from the applied list. The tenant returns when all its items apply.
+- **Branch scan warnings.** A failed or aborted branch scan keeps the branch jobs deferred until a scan succeeds or `rehydrateDeadline` passes. The Tenant reports `TenantWarnings=True`, reason `BranchScanFailed`. Gitea/Forgejo: owner 404 with private-repo proof releases them. GitHub keeps.
 - **Item role.** The operator grants the service identity build, read, and replay permissions
   on the folder's subtree.
-- **Service identity.** Builds in the folder run as `svc-<team>`, a synthesized identity
-  with no user record.
+- **Member role.** The operator grants read, discover, build, cancel, and replay on the folder's
+  subtree to each subject with pipelines write on the tenant. A narrowed grant gets only its job
+  globs. Cells stay headless, so this grant has no effect in the Jenkins web UI. Scans, restarts,
+  replays, and input answers check this grant. A `User` subject names a configured user claim
+  value, such as the subject of a person. The operator also grants the principal that person has
+  on the cell: the preferred username, then the email, then the subject. The operator reads that
+  principal from the person's `User` object. When a later sign-in omits the preferred username, the
+  principal changes to the email, then the subject. A person gets the grant after the first sign-in, and
+  the operator applies it on the next reconcile tick. A configured custom user claim also counts.
+  The operator reads that claim value from the person's `User` object, which stores it at sign-in.
+  Only a string claim counts.
+  The Cell tab Permissions panel lists the member roles of each tenant.
+  A cell on a member cluster also grants this role to the subjects of core bindings with pipelines write:
+  a tenant-scoped binding for its tenants, and a cluster-wide binding for every tenant.
+  The Cell tab Permissions panel shows the member roles that the member's own operator renders.
+- **Service identity.** Builds in the folder run as `svc-<tenant>`, a synthesized identity
+  with no user record. A scan of a multibranch project or an organization folder runs as the system identity, so it can read the folder credentials.
 - **Cloud and agent namespace.** The tenant gets one restricted Kubernetes cloud pointed at
-  `spec.pipelines.agentNamespace`. A pipeline selects it with `agent { label '<team>-default' }` or `cloud: '<team>'`;
+  `spec.pipelines.agentNamespace`. A pipeline selects it with `agent { label '<tenant>-default' }` or `cloud: '<tenant>'`;
   `agent any` lands on the default cloud, which the agent fence refuses.
 - **Projected credentials.** A `Secret` labelled `varroa.dev/tenant-credential: "true"` in the
   agent namespace becomes a folder-scoped Jenkins credential:
@@ -129,7 +149,7 @@ Expect `"status":"True","reason":"TenantPlaced"`.
   kind: Secret
   metadata:
     name: payments-github-token
-    namespace: team-payments
+    namespace: tenant-payments
     labels:
       varroa.dev/tenant-credential: "true"
     annotations:
@@ -162,7 +182,7 @@ Expect `"status":"True","reason":"TenantPlaced"`.
   kind: Secret
   metadata:
     name: payments-deploy-key
-    namespace: team-payments
+    namespace: tenant-payments
     labels:
       varroa.dev/tenant-credential: "true"
     annotations:
@@ -177,14 +197,14 @@ Expect `"status":"True","reason":"TenantPlaced"`.
   Example with `kubectl`:
 
   ```bash
-  kubectl -n team-payments create secret generic payments-kubeconfig --from-file=file=./kubeconfig
-  kubectl -n team-payments label secret payments-kubeconfig varroa.dev/tenant-credential=true
-  kubectl -n team-payments annotate secret payments-kubeconfig \
+  kubectl -n tenant-payments create secret generic payments-kubeconfig --from-file=file=./kubeconfig
+  kubectl -n tenant-payments label secret payments-kubeconfig varroa.dev/tenant-credential=true
+  kubectl -n tenant-payments annotate secret payments-kubeconfig \
     varroa.dev/credential-id=payments-kubeconfig varroa.dev/credential-kind=secretFile
-  kubectl -n team-payments create secret generic payments-signing \
+  kubectl -n tenant-payments create secret generic payments-signing \
     --from-file=keystore=./signing.p12 --from-literal=password=<password>
-  kubectl -n team-payments label secret payments-signing varroa.dev/tenant-credential=true
-  kubectl -n team-payments annotate secret payments-signing \
+  kubectl -n tenant-payments label secret payments-signing varroa.dev/tenant-credential=true
+  kubectl -n tenant-payments annotate secret payments-signing \
     varroa.dev/credential-id=payments-signing varroa.dev/credential-kind=certificate
   ```
 
@@ -204,7 +224,7 @@ Five controls confine a tenant:
 3. **Agent fence.** The plugin refuses a build on a node labelled for another tenant or on an
    unlabelled node.
 4. **Build identity.** The plugin authenticates every build, including a Pipeline `node` block, as
-   `svc-<team>`. That identity reads only its own folder's credentials and items.
+   `svc-<tenant>`. That identity reads only its own folder's credentials and items. A scan of a multibranch project or an organization folder runs as the system identity instead.
 5. **Script sandbox.** Tenant code is sandboxed. See [Script approvals](script-approvals.md).
 
 ## The tenant webhook door
@@ -213,7 +233,7 @@ The door paths, the forge rules, and the token fence are in [Tenant webhooks](we
 
 ## Placement lifecycle
 
-The placement pass binds one `Team` to one cell, and records it in `Team.status.placement`
+The placement pass binds one `Tenant` to one cell, and records it in `Tenant.status.placement`
 (`cluster`, `cell`, `cellNamespace`, `generation`). `generation` rises only when the bound cell
 changes.
 
@@ -221,9 +241,11 @@ changes.
 writes the new placement first, then both cells' tenant lists. A claim carrying an older
 generation is refused, so a lost cell never grants a build after the move.
 
-A voluntary move (a rebalance, or a profile change) waits. The reconciler drops the tenant's
-folder from the old cell first (`Placed=False`, reason `TenantMoving`), waits until that cell
-confirms the folder is idle, then does the same two-step move.
+A voluntary move (a rebalance, a profile change, or a pool change) waits. The reconciler drops the
+tenant's folder from every member cell first (`Placed=False`, reason `TenantMoving`). It waits
+until slot 0's old cell and each member cell on the old profile or pool confirm the folder is
+idle. It then does the same two-step move. [Tenant Slots](tenant-slots.md#a-profile-or-pool-change-moves-every-member)
+describes how the other members move.
 
 **Roll.** A cell that reports `CellReady=False` past `cells.unreadyGracePeriod`, for a reason
 other than the three configuration gates, gets its pod deleted once and the reason `CellRolled`.
@@ -239,7 +261,7 @@ tenant moves off on its next placement tick. The init wait applies here too. Onl
 
 ## Troubleshoot placement
 
-Every `Placed` reason on a `Team`:
+Every `Placed` reason on a `Tenant`:
 
 | Reason | Status | Meaning | Action |
 |---|---|---|---|
@@ -277,9 +299,9 @@ keeping `currentBuild.previousBuild` and the build-number sequence correct.
 Each seed carries the job's next build number, its newest successful build, and up to
 `rehydrateBuilds` further builds, newest first, with parameters and changesets. A multibranch
 child seeds only after branch indexing creates it; the operator retries until then or until
-`rehydrateDeadline` passes. The mite seeds a job that the same push creates, so a roll needs no second push. The mite drops the records of a deleted job.
+`rehydrateDeadline` passes. The mite seeds a job that the same push creates, so a roll needs no second push. The mite drops the records of a deleted job. After a branch scan of the folder finishes with `SUCCESS` and does not list a branch, the next desired-state apply drops that branch's records.
 
-`Team.spec.pipelines` settings for rehydration and the ledger:
+`Tenant.spec.pipelines` settings for rehydration and the ledger:
 
 | Setting | Default | Range |
 |---|---|---|
@@ -298,7 +320,7 @@ child seeds only after branch indexing creates it; the operator retries until th
 | `TenantRehydrated` | True | Every selected seed reached the cell. | None. |
 | `RehydrationPending` | False | A bundle is outstanding, or a job is deferred. Only deferred jobs and jobs with no number seed wait. Above 256 such jobs for a tenant, or past a cell-wide size limit, the largest tenants wait whole. | Wait; the operator resends after a result or a timeout. |
 | `RehydrationTruncated` | False | Seeds exceed one bundle. Only jobs with no build number wait. Above 256 such jobs, the whole tenant waits. | Wait; number-only bundles cover every job before full records resume. |
-| `RehydrationFailed` | False | The mite rejected the bundle, could not reload a job, or `rehydrateDeadline` passed. Past the deadline, the deferred jobs build with no seeded history. | Read the message. A bundle that never applied needs a fresh generation: move the tenant or roll the cell. |
+| `RehydrationFailed` | False | The mite rejected the bundle, could not reload a job, or `rehydrateDeadline` passed. Past the deadline, the deferred jobs build with no seeded history. | Read the message. A bundle that never applied needs a fresh generation: move the tenant or roll the cell. See `BranchScanFailed`. |
 
 A build can still wait on the claim reason `NOT_READY` while `Rehydrated` is `True`; the
 claimer retries. The operator applies a rehydration result and announces the seed within

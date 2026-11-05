@@ -3,5 +3,5 @@
 export const AGENTS_PAGE = {
   title: "Agents in Varroa",
   description:
-    "Connect your own agent or use the assistant in the dashboard. Every action runs as an identity, with its permissions.",
+    "Connect your own agent, use the assistant in the dashboard, or run a Tenant agent for a pipelines Tenant. Every action runs as an identity, with its permissions.",
 };
