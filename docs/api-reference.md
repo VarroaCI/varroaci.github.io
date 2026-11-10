@@ -31,13 +31,14 @@ A create request for a name that already exists answers `409`. Use the update ro
 
 ## Update a configuration object
 
-The update routes of composed bundles, catalog sources, Jenkins roles, Jenkins role bindings, version profiles, and provisioning defaults use the version of your read. Each `PUT` body replaces the stored object. Start from your read.
+The update routes of composed bundles, catalog sources, Jenkins roles, Jenkins role bindings, version profiles, and provisioning defaults use the version of your read. Each `PUT` body replaces the stored object. Start from your read. The update routes of roles and role bindings follow the same rules.
 
 - Send the `metadata.resourceVersion` of your read. A stale version answers `409` and writes nothing.
 - A version of an object that a delete removed after your read also answers `409`.
 - A body without `metadata.resourceVersion` only creates the object. It answers `409` when the object exists.
+- A federated copy of a Jenkins role or binding answers `409` with the code `federated_copy`. A repeat does not succeed. The response text names the source object.
 - A body without `metadata.resourceVersion` needs the create permission as well as the update permission. Without it, the route answers `403`. Provisioning defaults have no create permission, so their route needs the update permission only.
 
-On a `409`, read the object again and repeat the change. If that read answers `404`, send the change without `metadata.resourceVersion`.
+On a `409` without a code, read the object again and repeat the change. If that read answers `404`, send the change without `metadata.resourceVersion`.
 
 For exhaustive schemas, examples, and media types, defer to the OpenAPI document rather than duplicating it here.
