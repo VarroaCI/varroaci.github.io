@@ -383,7 +383,6 @@ export const NAV = {
   "operations/nats-upgrades.md": { label: "NATS upgrades", order: 29 },
   "operations/observability.md": { label: "Observability", order: 30 },
   "operations/troubleshooting.md": { label: "Troubleshooting", order: 31 },
-  "operations/upgrade-0-6-to-0-7.md": { label: "Upgrade 0.6 to 0.7", order: 32 },
 
   // "API & CLI" is an explicit-link group in astro.config.mjs, so these two
   // need an entry for coverage but their label/order are not consumed.
